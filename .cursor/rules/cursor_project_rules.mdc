@@ -1,0 +1,131 @@
+---
+description: Apply these rules when making changes to the project
+globs:
+alwaysApply: true
+---
+
+Update this rule if user requested changes to the project requirement, etc.
+## Project Overview
+
+*   **Type:** cursor_project_rules
+*   **Description:** I am developing an interactive English learning application tailored for Hebrew-speaking children, aged 5 to 12, who are learning English as a second language. The app uses speech recognition technology to convert spoken English into text, processed by AI agents to give real-time feedback, explanations, and guidance. It is designed to be a fun and supportive environment where children can improve their spoken English skills through natural conversations while receiving positive encouragement.
+*   **Primary Goal:** To provide a fun, interactive, and supportive environment that helps Hebrew-speaking children learn and improve their English through real-time speech recognition, AI-powered feedback, and theme-based interactions.
+
+## Project Structure
+
+### Framework-Specific Routing
+
+*   **Directory Rules:**
+
+    *   **React Router 6 (React 18+)**: Use a modular route folder structure under `src/routes/` to separate different parts of the application.
+    *   Example: The main learning interface is implemented as `src/routes/learning/index.tsx` following React Router conventions.
+    *   Example: User onboarding and profile management routes are placed under `src/routes/auth/` and `src/routes/profile/` respectively.
+
+### Core Directories
+
+*   **Versioned Structure:**
+
+    *   **src/routes:** Contains all route components aligned with React Router 6 standards for client-side navigation.
+    *   **src/components:** Houses reusable React components built with TypeScript and styled with Chakra UI.
+    *   **src/api:** Contains the Node.js/Express RESTful API endpoints interfacing with the backend logic and connecting to databases.
+    *   **server:** Directory for backend server files (e.g., Express server setup in `server/index.js` or `server/app.js`).
+    *   **config:** Environment configurations and setup files for connecting to MongoDB, Supabase, and Railway deployment settings.
+
+### Key Files
+
+*   **Stack-Versioned Patterns:**
+
+    *   **src/index.tsx:** The root React file rendering the application and integrating React Router.
+    *   **src/routes/learning/index.tsx:** Main learning interface implementing the speech-to-text and interactive AI routing logic.
+    *   **server/app.js:** Express application entry point housing middleware for RESTful API endpoints and error-handling mechanisms.
+    *   **config/db.js:** MongoDB connection setup file enforcing schema standards and secure access.
+
+## Tech Stack Rules
+
+*   **Version Enforcement:**
+
+    *   **react@18+:** Utilize functional components and hooks exclusively; avoid legacy class components.
+    *   **typescript:** Enforce strict type checking and leverage interfaces for component props and API responses.
+    *   **chakra_ui:** Implement responsive design guidelines and theme-driven component styling for child-friendly layouts.
+    *   **node_js@14+ & express@4+:** Use modular routing and middleware for clear API structure and error management.
+    *   **web_speech_api & web_audio_api:** Ensure robust event handling and graceful degradation in unsupported browsers.
+    *   **mongodb:** Follow schema validation and indexing best practices for performance and security.
+    *   **railway:** Deploy using environment variables and secure configurations.
+    *   **supabase:** Manage user authentication and profile data with secure, token-based systems.
+    *   **anthropic_claude & openapi-40-mini:** Secure API integrations with proper error handling and fallback error messages for latency issues.
+
+## PRD Compliance
+
+*   **Non-Negotiable:**
+
+    *   "Ensure continuous, real-time interaction with minimal latency while providing clear, child-friendly error messages in the event of delays or unresponsive AI services." This includes enforcing theme-based voice modulation (e.g., friendly panda vs. Darth Vader tone) and maintaining an immersive, streaming conversation experience.
+
+## App Flow Integration
+
+*   **Stack-Aligned Flow:**
+
+    *   Example: Main Learning Interface → `src/routes/learning/index.tsx` implements the recording feature, real-time speech-to-text conversion, and routes user input to the appropriate AI agent based on classification (conversation, vocabulary, or question).
+    *   Example: Authentication Flow → `src/routes/auth/` integrates Google Sign-In for easy access, setting up user profiles stored in MongoDB and managed via Supabase.
+
+## Best Practices
+
+*   **react**
+
+    *   Use functional components and React hooks to maintain state and side effects cleanly.
+    *   Keep component design modular and reusable to enhance maintainability.
+    *   Leverage code-splitting and lazy loading for improved performance in large applications.
+
+*   **typescript**
+
+    *   Enforce strict type checking and utilize interfaces to define component props and API responses.
+    *   Use TypeScript’s advanced features like generics to create flexible, reusable code components.
+    *   Regularly review and update type definitions as the project requirements evolve.
+
+*   **chakra_ui**
+
+    *   Adhere to the design system and component library for consistent visual appearance.
+    *   Use Chakra UI’s responsive design utilities to ensure optimal display on mobile, tablet, and desktop devices.
+    *   Maintain theme consistency, ensuring that element styling adjusts correctly when themes (e.g., Panda or Darth Vader) are switched.
+
+*   **node_js & express**
+
+    *   Structure API endpoints clearly and use middleware for error handling and logging.
+    *   Keep business logic separate from routing logic for easier testing and maintenance.
+    *   Use environment variables for managing sensitive data and configuration settings.
+
+*   **web_speech_api & web_audio_api**
+
+    *   Implement comprehensive event listeners for both successful operations and error states.
+    *   Provide fallback or error messages clearly when the APIs are unsupported or delayed.
+    *   Optimize real-time audio processing to maintain seamless user interaction.
+
+*   **mongodb**
+
+    *   Define clear schemas and utilize validation to ensure data integrity.
+    *   Optimize queries with proper indexing and adhere to best security practices.
+    *   Regularly back up data and monitor performance metrics.
+
+*   **railway**
+
+    *   Use secure environment variables and configuration best practices to manage deployments.
+    *   Monitor deployment logs and performance for potential issues in production.
+    *   Ensure proper rollback plans are in place in case of deployment failures.
+
+*   **supabase**
+
+    *   Use secure authentication methods and manage sensitive user data according to best practices.
+    *   Regularly update and maintain authentication flows and session management protocols.
+    *   Integrate with MongoDB and backend services in a secure and efficient manner.
+
+*   **anthropic_claude & openapi-40-mini**
+
+    *   Secure API integrations with proper key management and endpoint security.
+    *   Implement retry mechanisms and graceful error handling for unresponsive or slow external services.
+    *   Regularly review API documentation and update integration code as needed.
+
+## Rules
+
+*   Derive folder/file patterns directly from the versions and conventions described in the tech stack documentation.
+*   For React applications using React Router 6: Enforce a clear `src/routes/` directory structure with nested route folders, avoiding the mixing of outdated patterns.
+*   For Express backend: Maintain a modular file system where API routes, middleware, and configuration are separated into dedicated directories (e.g., `src/api/`, `config/`, `server/`).
+*   Never mix distinct version patterns. Ensure that the chosen routing and file structures are consistent across both frontend and backend codebases.
