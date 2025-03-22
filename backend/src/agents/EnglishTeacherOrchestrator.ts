@@ -12,19 +12,23 @@ export class EnglishTeacherOrchestrator {
   private userId: string;
   private sessionId: string;
   private openAIClient: OpenAI;
+  private audioCache: Map<string, string>;
+  private readonly MAX_CACHE_SIZE = 100; // Maximum number of cached items
+  private readonly MAX_PHRASE_LENGTH = 50; // Maximum characters in a cached phrase
 
   constructor() {
     this.openAIClient = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
+    this.audioCache = new Map();
 
     // Initialize and add the vocabulary agent
     const vocabularyAgent = new OpenAIAgent({
-      name: "vocabulary",  // Simplified name for matching
+      name: "vocabulary",
       description: "Specializes in explaining English vocabulary, word meanings, translations, and usage to Hebrew-speaking children",
       client: this.openAIClient,
-      model: "gpt-4-0125-preview",  // GPT-4-0mini model
-      streaming: false,
+      model: "gpt-3.5-turbo-0125",  // Faster model
+      streaming: false,  // Disable streaming for now
       saveChat: true,
       logger: console,
       customSystemPrompt: {
@@ -41,11 +45,11 @@ export class EnglishTeacherOrchestrator {
 
     // Initialize and add the conversation agent
     const conversationAgent = new OpenAIAgent({
-      name: "conversation",  // Simplified name for matching
+      name: "conversation",
       description: "Handles general English conversation practice and dialogue with Hebrew-speaking children",
       client: this.openAIClient,
-      model: "gpt-4-0125-preview",  // GPT-4-0mini model
-      streaming: false,
+      model: "gpt-3.5-turbo-0125",  // Faster model
+      streaming: false,  // Disable streaming for now
       saveChat: true,
       logger: console,
       customSystemPrompt: {
@@ -58,7 +62,7 @@ export class EnglishTeacherOrchestrator {
     // Initialize the OpenAI classifier
     const classifier = new OpenAIClassifier({
       apiKey: process.env.OPENAI_API_KEY!,
-      modelId: "gpt-4-0125-preview",  // GPT-4-0mini model
+      modelId: "gpt-3.5-turbo-0125",  // Faster model
       inferenceConfig: {
         temperature: 0.3,
         maxTokens: 100
@@ -108,57 +112,191 @@ export class EnglishTeacherOrchestrator {
   }
 
   /**
-   * Generate speech from text using OpenAI TTS
+   * Split text into meaningful phrases for caching
    */
-  private async generateSpeech(text: string): Promise<string> {
+  private splitIntoPhrases(text: string): string[] {
+    // Split on common punctuation that indicates phrase boundaries
+    const rawPhrases = text.split(/([,.!?])\s+/);
+    const phrases: string[] = [];
+    
+    let currentPhrase = '';
+    for (const phrase of rawPhrases) {
+      if (!phrase.trim()) continue;
+      
+      // If adding this phrase would exceed MAX_PHRASE_LENGTH, store current and start new
+      if ((currentPhrase + ' ' + phrase).length > this.MAX_PHRASE_LENGTH && currentPhrase) {
+        phrases.push(currentPhrase.trim());
+        currentPhrase = phrase;
+      } else {
+        currentPhrase = currentPhrase ? `${currentPhrase} ${phrase}` : phrase;
+      }
+    }
+    
+    if (currentPhrase) {
+      phrases.push(currentPhrase.trim());
+    }
+
+    return phrases.filter(p => p.length > 0);
+  }
+
+  /**
+   * Generate speech for a single phrase
+   */
+  private async generateSpeechForPhrase(phrase: string): Promise<string> {
+    const cacheKey = phrase.toLowerCase().trim();
+
+    // Check cache first
+    const cachedAudio = this.audioCache.get(cacheKey);
+    if (cachedAudio) {
+      console.debug(`Cache hit for phrase: "${phrase}"`);
+      return cachedAudio;
+    }
+
+    console.debug(`Cache miss for phrase: "${phrase}"`);
     try {
       const mp3 = await this.openAIClient.audio.speech.create({
         model: "tts-1",
-        voice: "nova", // Using a friendly, clear voice
-        input: text,
+        voice: "nova",
+        input: phrase,
       });
 
-      // Convert the raw audio data to base64
-      const buffer = Buffer.from(await mp3.arrayBuffer());
-      return `data:audio/mp3;base64,${buffer.toString('base64')}`;
+      const arrayBuffer = await mp3.arrayBuffer();
+      const base64String = Buffer.from(arrayBuffer).toString('base64');
+      const base64Data = `data:audio/mp3;base64,${base64String}`;
+
+      // Cache the result if it's not too large
+      if (base64Data.length < 1024 * 1024) { // 1MB limit for phrase cache
+        if (this.audioCache.size >= this.MAX_CACHE_SIZE) {
+          const firstKey = this.audioCache.keys().next().value;
+          this.audioCache.delete(firstKey);
+        }
+        this.audioCache.set(cacheKey, base64Data);
+        console.debug(`Cached phrase: "${phrase}"`);
+      }
+
+      return base64Data;
     } catch (error) {
-      console.error('Error generating speech:', error);
+      console.error('Error generating speech for phrase:', phrase, error);
       return '';
     }
+  }
+
+  /**
+   * Concatenate multiple base64 audio strings
+   */
+  private async concatenateAudioBase64(base64Audios: string[]): Promise<string> {
+    try {
+      // Extract the actual base64 data from each string (remove the data:audio/mp3;base64, prefix)
+      const buffers = base64Audios.map(base64Audio => {
+        const base64Data = base64Audio.split(',')[1];
+        return Buffer.from(base64Data, 'base64');
+      });
+
+      // Concatenate all buffers
+      const concatenatedBuffer = Buffer.concat(buffers);
+      
+      // Convert back to base64 with the proper prefix
+      return `data:audio/mp3;base64,${concatenatedBuffer.toString('base64')}`;
+    } catch (error) {
+      console.error('Error concatenating audio:', error);
+      // Return the first audio segment as fallback
+      return base64Audios[0];
+    }
+  }
+
+  /**
+   * Generate speech from text using OpenAI TTS with phrase-level caching
+   */
+  private async generateSpeech(text: string): Promise<string> {
+    const startTime = Date.now();
+    console.debug('Starting TTS generation for text:', text);
+
+    // Split into phrases
+    const phrases = this.splitIntoPhrases(text);
+    console.debug('Split into phrases:', phrases);
+
+    // Generate audio for each phrase (potentially from cache)
+    const audioPromises = phrases.map(phrase => this.generateSpeechForPhrase(phrase));
+    const audioResults = await Promise.all(audioPromises);
+
+    // Filter out any failed generations
+    const validAudioResults = audioResults.filter(audio => audio.length > 0);
+
+    if (validAudioResults.length === 0) {
+      console.error('No valid audio generated for any phrase');
+      return '';
+    }
+
+    // If we only have one phrase, return it directly
+    if (validAudioResults.length === 1) {
+      console.debug(`Single phrase TTS completed in ${Date.now() - startTime}ms`);
+      return validAudioResults[0];
+    }
+
+    // Concatenate all audio segments
+    console.debug(`Concatenating ${validAudioResults.length} audio segments`);
+    const concatenatedAudio = await this.concatenateAudioBase64(validAudioResults);
+    console.debug(`Multi-phrase TTS completed in ${Date.now() - startTime}ms`);
+    return concatenatedAudio;
   }
 
   /**
    * Process input text through the appropriate agent
    */
   async processInput(text: string): Promise<AgentResponse> {
+    const startTime = Date.now();
     try {
-      console.debug('Processing input:', text);
+      console.debug('Starting to process input:', text);
+      
+      const routingStartTime = Date.now();
       const response = await this.orchestrator.routeRequest(
         text,
         this.userId,
         this.sessionId
       );
-      console.debug('Received response:', response);
+      console.debug(`Routing and agent response completed in ${Date.now() - routingStartTime}ms`);
+      // console.debug('Raw response:', response);
 
       // Extract the text response
       let textResponse: string;
       if (typeof response === 'string') {
         textResponse = response;
+      } else if (response && typeof response === 'object') {
+        const responseObj = response as { output?: string; content?: string[] };
+        // Handle response object
+        if (responseObj.output) {
+          textResponse = responseObj.output;
+        } else if (responseObj.content && Array.isArray(responseObj.content) && responseObj.content.length > 0) {
+          textResponse = responseObj.content[0];
+        } else {
+          console.warn('Unexpected response format:', response);
+          textResponse = 'No response generated';
+        }
       } else {
-        const responseObj = response as any;
-        textResponse = responseObj.output || 
-          (responseObj.content && Array.isArray(responseObj.content) && responseObj.content.length > 0 
-            ? responseObj.content[0] 
-            : 'No response generated');
+        textResponse = 'No response generated';
       }
 
-      // Generate speech for the response
-      const audioUrl = await this.generateSpeech(textResponse);
+      // Clean up the text response
+      textResponse = textResponse.trim();
+      if (!textResponse) {
+        textResponse = 'No response generated';
+      }
 
-      return {
+      console.debug('Extracted text response:', textResponse);
+
+      // Generate speech for the response
+      const ttsStartTime = Date.now();
+      const audioUrl = await this.generateSpeech(textResponse);
+      console.debug(`TTS generation completed in ${Date.now() - ttsStartTime}ms`);
+
+      const result = {
         text: textResponse,
-        audioUrl
+        audioUrl: audioUrl || undefined
       };
+
+      // console.debug('Final response:', result);
+      console.debug(`Total processing time: ${Date.now() - startTime}ms`);
+      return result;
     } catch (error) {
       console.error('Orchestration error:', error);
       return {
@@ -179,5 +317,13 @@ export class EnglishTeacherOrchestrator {
    */
   getChatHistory(): ConversationMessage[] {
     return [];  // Chat history is handled internally by the orchestrator
+  }
+
+  /**
+   * Clear the audio cache
+   */
+  clearAudioCache(): void {
+    this.audioCache.clear();
+    console.debug('Audio cache cleared');
   }
 } 
