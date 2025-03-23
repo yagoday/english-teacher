@@ -6,6 +6,8 @@ import { promisify } from 'util';
 import ffmpeg from 'ffmpeg-static';
 import { EnglishTeacherOrchestrator } from '../agents/EnglishTeacherOrchestrator';
 import OpenAI from 'openai';
+import { MessageService } from '../services/messageService';
+
 
 const execAsync = promisify(exec);
 const router = express.Router();
@@ -39,7 +41,7 @@ router.get('/health', (_req: Request, res: Response) => {
 // Process text through AI agent
 router.post('/process', async (req: Request, res: Response) => {
   try {
-    const { text } = req.body;
+    const { text, userId, conversationId } = req.body;
 
     if (!text) {
       return res.status(400).json({
@@ -48,11 +50,34 @@ router.post('/process', async (req: Request, res: Response) => {
       });
     }
 
+    if (!userId || !conversationId) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId and conversationId are required'
+      });
+    }
+
+    // Save student's message
+    const studentMessage = await MessageService.createMessage(userId, conversationId, text, 'student');
+
+    // Process the text through AI
     const response = await agentOrchestrator.processInput(text);
+
+    // Save tutor's response
+    const tutorMessage = await MessageService.createMessage(
+      userId, 
+      conversationId, 
+      response.text, 
+      'tutor'
+    );
 
     return res.json({
       success: true,
-      response
+      response,
+      messages: {
+        student: studentMessage,
+        tutor: tutorMessage
+      }
     });
 
   } catch (error: any) {

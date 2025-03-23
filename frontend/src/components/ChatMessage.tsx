@@ -1,21 +1,28 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ThumbsDown, ThumbsUp, Play, Pause } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { messageApi } from "@/services/api";
 
 interface ChatMessageProps {
   message: {
     id: string;
+    userId: string;
     text: string;
     sender: "student" | "tutor";
     audioUrl?: string;
+    feedback?: {
+      liked: boolean;
+      disliked: boolean;
+      timestamp?: Date;
+    };
     timestamp: Date;
   };
 }
 
 const ChatMessage = ({ message }: ChatMessageProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [disliked, setDisliked] = useState(false);
-  const [liked, setLiked] = useState(false);
+  const [disliked, setDisliked] = useState(message.feedback?.disliked || false);
+  const [liked, setLiked] = useState(message.feedback?.liked || false);
   const [audioError, setAudioError] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isTutor = message.sender === "tutor";
@@ -95,16 +102,38 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
     }
   };
 
-  const handleDislike = () => {
-    setDisliked(!disliked);
-    if (liked) setLiked(false); // Ensure only one can be active at a time
-    // In a real implementation, this would send feedback to the backend
+  const handleDislike = async () => {
+    try {
+      const newDisliked = !disliked;
+      setDisliked(newDisliked);
+      if (liked) setLiked(false);
+      
+      await messageApi.updateFeedback(message.id, {
+        liked: false,
+        disliked: newDisliked
+      });
+    } catch (error) {
+      console.error('Failed to update feedback:', error);
+      // Revert state on error
+      setDisliked(!disliked);
+    }
   };
 
-  const handleLike = () => {
-    setLiked(!liked);
-    if (disliked) setDisliked(false); // Ensure only one can be active at a time
-    // In a real implementation, this would send feedback to the backend
+  const handleLike = async () => {
+    try {
+      const newLiked = !liked;
+      setLiked(newLiked);
+      if (disliked) setDisliked(false);
+      
+      await messageApi.updateFeedback(message.id, {
+        liked: newLiked,
+        disliked: false
+      });
+    } catch (error) {
+      console.error('Failed to update feedback:', error);
+      // Revert state on error
+      setLiked(!liked);
+    }
   };
 
   return (

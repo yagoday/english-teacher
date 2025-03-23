@@ -21,6 +21,10 @@ export interface ProcessResponse {
     text: string;
     audioUrl?: string;
   };
+  messages?: {
+    student: any;
+    tutor: any;
+  };
   error?: string;
 }
 
@@ -45,9 +49,13 @@ export const speechApi = {
     }
   },
 
-  async processText(text: string): Promise<ProcessResponse> {
+  async processText(text: string, userId: string, conversationId: string): Promise<ProcessResponse> {
     try {
-      const response = await api.post<ProcessResponse>('/api/speech/process', { text });
+      const response = await api.post<ProcessResponse>('/api/speech/process', { 
+        text,
+        userId,
+        conversationId
+      });
       return response.data;
     } catch (error: any) {
       return {

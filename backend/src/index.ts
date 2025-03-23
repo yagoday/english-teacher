@@ -2,9 +2,16 @@ import express, { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import speechRouter from './routes/speech';
+import conversationRouter from './routes/conversation';
+import messageRouter from './routes/message';
+import { connectDB } from './config/database';
+import mongoose from 'mongoose';
 
 // Load environment variables
 dotenv.config();
+
+// Connect to MongoDB
+connectDB();
 
 // Validate required environment variables
 if (!process.env.OPENAI_API_KEY) {
@@ -22,13 +29,16 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/speech', speechRouter);
+app.use('/api/conversations', conversationRouter);
+app.use('/api/messages', messageRouter);
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
   res.json({ 
     status: 'ok',
     environment: process.env.NODE_ENV || 'development',
-    openaiConfigured: !!process.env.OPENAI_API_KEY
+    openaiConfigured: !!process.env.OPENAI_API_KEY,
+    mongoConnected: mongoose.connection.readyState === 1
   });
 });
 
@@ -54,4 +64,5 @@ app.listen(port, () => {
   console.log(`Health check available at http://localhost:${port}/health`);
   console.log('Environment:', process.env.NODE_ENV || 'development');
   console.log('OpenAI API Key:', process.env.OPENAI_API_KEY ? 'Configured' : 'Missing');
+  console.log('MongoDB:', mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected');
 }); 

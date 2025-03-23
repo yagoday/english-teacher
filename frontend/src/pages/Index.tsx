@@ -22,13 +22,21 @@ import {
 } from "@/components/ui/sheet";
 import SettingsPanel from "@/components/SettingsPanel";
 import { speechApi } from "@/lib/api";
+import { conversationApi } from "@/services/api";
+import { messageApi } from "@/services/api";
 
 // Define message type
 interface Message {
   id: string;
+  userId: string;
   text: string;
   sender: "student" | "tutor";
   audioUrl?: string;
+  feedback?: {
+    liked: boolean;
+    disliked: boolean;
+    timestamp?: Date;
+  };
   timestamp: Date;
 }
 
@@ -36,15 +44,52 @@ const Index = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Auto scroll to bottom when messages change
+  // Use test user ID for now
+  const userId = "67e00f284ba1bfef7e300589";
+
+  // Initialize or load conversation
   useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
-  }, [messages]);
+    const initializeConversation = async () => {
+      // Try to get conversation ID from session storage
+      const storedConversationId = sessionStorage.getItem('currentConversationId');
+      
+      if (storedConversationId) {
+        try {
+          // Verify the conversation exists and load its messages
+          const conversation = await conversationApi.getById(storedConversationId);
+          const conversationMessages = await messageApi.getByConversation(storedConversationId);
+          setCurrentConversationId(storedConversationId);
+          setMessages(conversationMessages);
+        } catch (error) {
+          console.error('Failed to load stored conversation:', error);
+          // If loading fails, we'll create a new conversation below
+          sessionStorage.removeItem('currentConversationId');
+        }
+      }
+      
+      // If no stored conversation or loading failed, create a new one
+      if (!sessionStorage.getItem('currentConversationId')) {
+        try {
+          const conversation = await conversationApi.create(userId, "English Learning Session", "general");
+          setCurrentConversationId(conversation._id);
+          sessionStorage.setItem('currentConversationId', conversation._id);
+        } catch (error) {
+          console.error('Failed to create new conversation:', error);
+          toast({
+            title: "Error",
+            description: "Failed to start conversation",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+
+    initializeConversation();
+  }, []);
 
   const handleRecordingComplete = async (text: string) => {
     if (!text.trim()) {
@@ -56,9 +101,19 @@ const Index = () => {
       return;
     }
 
-    // Add student message
+    if (!currentConversationId) {
+      toast({
+        title: "Error",
+        description: "No active conversation",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Add student message to UI immediately
     const studentMessage: Message = {
       id: `msg-${Date.now()}-student`,
+      userId,
       text,
       sender: "student",
       timestamp: new Date()
@@ -69,11 +124,12 @@ const Index = () => {
     
     try {
       // Process the text through the AI
-      const response = await speechApi.processText(text);
+      const response = await speechApi.processText(text, userId, currentConversationId);
       
       if (response.success && response.response) {
         const tutorMessage: Message = {
           id: `msg-${Date.now()}-tutor`,
+          userId,
           text: response.response.text,
           sender: "tutor",
           audioUrl: response.response.audioUrl,
@@ -100,12 +156,17 @@ const Index = () => {
   };
 
   const startNewChat = async (chatType: string) => {
-    // Clear current messages
+    // Clear current messages and conversation
     setMessages([]);
     
     try {
       // Reset conversation context in the backend
       await speechApi.resetConversation();
+      
+      // Create a new conversation
+      const conversation = await conversationApi.create(userId, chatType, chatType);
+      setCurrentConversationId(conversation._id);
+      sessionStorage.setItem('currentConversationId', conversation._id);
       
       // Based on chat type, we could show a different welcome message
       let welcomeText = "";
@@ -129,6 +190,7 @@ const Index = () => {
       
       const tutorMessage: Message = {
         id: `msg-${Date.now()}-tutor`,
+        userId,
         text: welcomeText,
         sender: "tutor",
         timestamp: new Date()
@@ -145,11 +207,18 @@ const Index = () => {
   };
 
   const handleLogout = () => {
-    // This would connect to an auth service in a real app
-    console.log("User logged out");
-    // For demo purposes, we'll just show an empty chat
+    // Clear conversation data
     setMessages([]);
+    setCurrentConversationId(null);
+    sessionStorage.removeItem('currentConversationId');
   };
+
+  // Auto scroll to bottom when messages change
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-blue-50 to-purple-50 overflow-hidden relative">
