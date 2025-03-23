@@ -126,19 +126,16 @@ router.post('/transcribe', upload.single('audio'), async (req: Request, res: Res
   const outputPath = `${inputPath}-converted.mp3`;
 
   try {
-    console.log('Received audio file:', { 
-      mimetype: req.file.mimetype, 
-      size: req.file.size,
-      userId: req.user?.id 
-    });
-
     // Convert WebM to MP3 using ffmpeg
     await execAsync(`"${ffmpeg}" -i "${inputPath}" -vn -acodec libmp3lame -ar 44100 -ac 2 -b:a 192k "${outputPath}"`);
 
-    // Send to OpenAI Whisper API
+    // Send to OpenAI Whisper API with English language specification
     const response = await openai.audio.transcriptions.create({
       file: fs.createReadStream(outputPath),
-      model: "whisper-1"
+      model: "whisper-1",
+      language: "en",  // Force English language
+      response_format: "text",
+      prompt: "This is English speech."  // Help guide the model to expect English
     });
 
     // Clean up temporary files
@@ -147,7 +144,7 @@ router.post('/transcribe', upload.single('audio'), async (req: Request, res: Res
 
     return res.json({
       success: true,
-      text: response.text
+      text: response
     });
   } catch (error: any) {
     console.error('Transcription error:', error.response?.data || error);

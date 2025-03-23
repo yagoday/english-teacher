@@ -1,6 +1,11 @@
-import { MultiAgentOrchestrator, OpenAIAgent, OpenAIClassifier } from "multi-agent-orchestrator";
-import { ConversationMessage } from "multi-agent-orchestrator";
-import OpenAI from 'openai';
+import { MultiAgentOrchestrator } from "multi-agent-orchestrator";
+import type { ConversationMessage } from "multi-agent-orchestrator";
+import { createOpenAIClient } from "./config/agentConfig";
+import { createVocabularyAgent } from "./agents/vocabularyAgent";
+import { createConversationAgent } from "./agents/conversationAgent";
+import { createFixerAgent } from "./agents/fixerAgent";
+import { createClassifier } from "./agents/classifier";
+import OpenAI from "openai";
 
 interface AgentResponse {
   text: string;
@@ -17,83 +22,16 @@ export class EnglishTeacherOrchestrator {
   private readonly MAX_PHRASE_LENGTH = 50; // Maximum characters in a cached phrase
 
   constructor() {
-    this.openAIClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+    this.openAIClient = createOpenAIClient();
     this.audioCache = new Map();
 
-    // Initialize and add the vocabulary agent
-    const vocabularyAgent = new OpenAIAgent({
-      name: "vocabulary",
-      description: "Specializes in explaining English vocabulary, word meanings, translations, and usage to Hebrew-speaking children",
-      client: this.openAIClient,
-      model: "gpt-3.5-turbo-0125",  // Faster model
-      streaming: false,  // Disable streaming for now
-      saveChat: true,
-      logger: console,
-      customSystemPrompt: {
-        template: `You are a vocabulary teacher for Hebrew-speaking children learning English.
-          First explain words using very simple English (1-2 short sentences).
-          If they say no, respond with just: "[English word in Hebrew is [Hebrew word]"
-          Example: "A dog is a friendly pet animal."
-          If they say no: "dog is כלב"
-          Always use examples from a child's daily life.
-          Keep all responses brief and friendly.`
-      }
-    });
+    // Create agents
+    const vocabularyAgent = createVocabularyAgent(this.openAIClient);
+    const conversationAgent = createConversationAgent(this.openAIClient);
+    const fixerAgent = createFixerAgent(this.openAIClient);
+    const classifier = createClassifier(process.env.OPENAI_API_KEY!);
 
-    // Initialize and add the conversation agent
-    const conversationAgent = new OpenAIAgent({
-      name: "conversation",
-      description: "Handles general English conversation practice and dialogue with Hebrew-speaking children",
-      client: this.openAIClient,
-      model: "gpt-3.5-turbo-0125",  // Faster model
-      streaming: false,  // Disable streaming for now
-      saveChat: true,
-      logger: console,
-      customSystemPrompt: {
-        template: `You are a friendly English teacher for Hebrew-speaking children.
-          Keep responses short and simple, 1-2 sentences maximum.
-          Use basic vocabulary they can understand.`
-      }
-    });
-
-    // Initialize the OpenAI classifier
-    const classifier = new OpenAIClassifier({
-      apiKey: process.env.OPENAI_API_KEY!,
-      modelId: "gpt-3.5-turbo-0125",  // Faster model
-      inferenceConfig: {
-        temperature: 0.3,
-        maxTokens: 100
-      }
-    });
-
-    // Set the classifier's system prompt
-    classifier.setSystemPrompt(`You are a routing classifier for an English learning system.
-      Your task is to analyze each input and route it to the most appropriate agent.
-      You will receive the chat history to understand the context of each message.
-      
-      Available agents:
-      1. "vocabulary": For questions about word meanings, translations, or usage
-         Examples: "What does 'hello' mean?", "How do you say 'dog' in English?"
-         IMPORTANT: If a user responds "no" or "I don't understand" after a vocabulary explanation,
-         route back to "vocabulary" so it can provide the Hebrew translation.
-      
-      2. "conversation": For general conversation and practice
-         Examples: "Hello!", "How are you?"
-
-      Rules:
-      - For questions about meanings or translations -> select "vocabulary"
-      - For responses to vocabulary explanations (like "no", "I don't understand") -> select "vocabulary"
-      - For greetings or general chat -> select "conversation"
-      - When unsure -> select "conversation"
-
-      You must use the analyzePrompt function with:
-      - userinput: The original text
-      - selected_agent: Either "vocabulary" or "conversation"
-      - confidence: Number between 0 and 1`);
-
-    // Initialize the orchestrator with the OpenAI classifier
+    // Initialize the orchestrator
     this.orchestrator = new MultiAgentOrchestrator({
       classifier,
       defaultAgent: conversationAgent
@@ -105,9 +43,13 @@ export class EnglishTeacherOrchestrator {
     // Add agents to the orchestrator
     this.orchestrator.addAgent(vocabularyAgent);
     this.orchestrator.addAgent(conversationAgent);
+    this.orchestrator.addAgent(fixerAgent);
 
-    // Enable debug logging
-    console.debug('Orchestrator initialized with agents:', [vocabularyAgent.name, conversationAgent.name]);
+    console.debug('Orchestrator initialized with agents:', [
+      vocabularyAgent.name, 
+      conversationAgent.name, 
+      fixerAgent.name
+    ]);
   }
 
   /**
