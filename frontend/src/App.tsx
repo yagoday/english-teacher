@@ -1,30 +1,27 @@
-import React from 'react';
-import { Box, Container, Heading, VStack } from '@chakra-ui/react';
-import { RecordingFeature } from './components/RecordingFeature';
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
 
-export type Theme = 'panda' | 'vader';
+const queryClient = new QueryClient();
 
-function App() {
-  const handleSpeechResult = (text: string) => {
-    console.log('Speech result:', text);
-    // Here you can add logic to process the speech result
-  };
-
-  return (
-    <Box minH="100vh" bg="gray.50" py={10}>
-      <Container maxW="container.md">
-        <VStack spacing={8}>
-          <Heading as="h1" size="xl" textAlign="center" color="gray.700">
-            English Learning Assistant
-          </Heading>
-          <RecordingFeature 
-            theme="panda"
-            onSpeechResult={handleSpeechResult}
-          />
-        </VStack>
-      </Container>
-    </Box>
-  );
-}
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;
