@@ -1,8 +1,12 @@
 import express, { Request, Response } from 'express';
 import { ConversationService } from '../services/conversationService';
 import mongoose from 'mongoose';
+import { authenticateUser } from '../middleware/auth';
 
 const router = express.Router();
+
+// Apply authentication middleware to all routes
+router.use(authenticateUser);
 
 interface CreateConversationBody {
   userId: string;

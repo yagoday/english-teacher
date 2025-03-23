@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from 'react-router-dom';
 import ChatMessage from "@/components/ChatMessage";
 import RecordButton from "@/components/RecordButton";
 import EmptyState from "@/components/EmptyState";
@@ -22,8 +23,9 @@ import {
 } from "@/components/ui/sheet";
 import SettingsPanel from "@/components/SettingsPanel";
 import { speechApi } from "@/lib/api";
-import { conversationApi } from "@/services/api";
-import { messageApi } from "@/services/api";
+import { conversationApi, messageApi, userApi } from "@/services/api";
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 // Define message type
 interface Message {
@@ -40,20 +42,60 @@ interface Message {
   timestamp: Date;
 }
 
+interface BackendUser {
+  _id: string;
+  email: string;
+  name: string;
+  supabaseId: string;
+}
+
 const Index = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [backendUser, setBackendUser] = useState<BackendUser | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  // Use test user ID for now
-  const userId = "67e00f284ba1bfef7e300589";
+  // Fetch or create backend user
+  useEffect(() => {
+    const initializeUser = async () => {
+      if (!user) {
+        console.log('No Supabase user available');
+        return;
+      }
+
+      try {
+        console.log('Fetching backend user data...');
+        const userData = await userApi.getOrCreate();
+        console.log('Backend user data:', userData);
+        setBackendUser(userData);
+      } catch (error) {
+        console.error('Failed to get/create backend user:', error);
+        toast({
+          title: "Error",
+          description: "Failed to initialize user data. Please try logging out and back in.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    initializeUser();
+  }, [user]);
 
   // Initialize or load conversation
   useEffect(() => {
     const initializeConversation = async () => {
+      if (!backendUser?._id) {
+        console.error('No backend user ID available');
+        return;
+      }
+
+      console.log('Initializing conversation for user:', backendUser._id);
+      
       // Try to get conversation ID from session storage
       const storedConversationId = sessionStorage.getItem('currentConversationId');
       
@@ -74,14 +116,16 @@ const Index = () => {
       // If no stored conversation or loading failed, create a new one
       if (!sessionStorage.getItem('currentConversationId')) {
         try {
-          const conversation = await conversationApi.create(userId, "English Learning Session", "general");
+          console.log('Creating new conversation for user:', backendUser._id);
+          const conversation = await conversationApi.create(backendUser._id, "English Learning Session", "general");
+          console.log('Created conversation:', conversation);
           setCurrentConversationId(conversation._id);
           sessionStorage.setItem('currentConversationId', conversation._id);
         } catch (error) {
           console.error('Failed to create new conversation:', error);
           toast({
             title: "Error",
-            description: "Failed to start conversation",
+            description: "Failed to start conversation. Please try logging out and back in.",
             variant: "destructive",
           });
         }
@@ -89,7 +133,7 @@ const Index = () => {
     };
 
     initializeConversation();
-  }, []);
+  }, [backendUser?._id]);
 
   const handleRecordingComplete = async (text: string) => {
     if (!text.trim()) {
@@ -113,7 +157,7 @@ const Index = () => {
     // Add student message to UI immediately
     const studentMessage: Message = {
       id: `msg-${Date.now()}-student`,
-      userId,
+      userId: backendUser?._id || '',
       text,
       sender: "student",
       timestamp: new Date()
@@ -124,12 +168,12 @@ const Index = () => {
     
     try {
       // Process the text through the AI
-      const response = await speechApi.processText(text, userId, currentConversationId);
+      const response = await speechApi.processText(text, backendUser?._id || '', currentConversationId);
       
       if (response.success && response.response) {
         const tutorMessage: Message = {
           id: `msg-${Date.now()}-tutor`,
-          userId,
+          userId: backendUser?._id || '',
           text: response.response.text,
           sender: "tutor",
           audioUrl: response.response.audioUrl,
@@ -164,7 +208,7 @@ const Index = () => {
       await speechApi.resetConversation();
       
       // Create a new conversation
-      const conversation = await conversationApi.create(userId, chatType, chatType);
+      const conversation = await conversationApi.create(backendUser?._id || '', chatType, chatType);
       setCurrentConversationId(conversation._id);
       sessionStorage.setItem('currentConversationId', conversation._id);
       
@@ -190,7 +234,7 @@ const Index = () => {
       
       const tutorMessage: Message = {
         id: `msg-${Date.now()}-tutor`,
-        userId,
+        userId: backendUser?._id || '',
         text: welcomeText,
         sender: "tutor",
         timestamp: new Date()
@@ -206,11 +250,42 @@ const Index = () => {
     }
   };
 
-  const handleLogout = () => {
-    // Clear conversation data
-    setMessages([]);
-    setCurrentConversationId(null);
-    sessionStorage.removeItem('currentConversationId');
+  const handleLogout = async () => {
+    console.log('Index: Starting logout process...');
+    try {
+      // Clear conversation data
+      setMessages([]);
+      setCurrentConversationId(null);
+      
+      // Clear ALL storage
+      sessionStorage.clear();
+      localStorage.clear();
+      
+      // Clear all cookies
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c
+          .replace(/^ +/, "")
+          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+      
+      // Sign out from Supabase with global scope
+      await supabase.auth.signOut({ scope: 'global' });
+      
+      // Clear the Supabase cookie if it exists
+      const domain = window.location.hostname;
+      document.cookie = `sb-access-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;domain=${domain}`;
+      document.cookie = `sb-refresh-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;domain=${domain}`;
+      
+      // Force a page reload to clear any remaining state
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Index: Error during logout:', error);
+      toast({
+        title: "Error",
+        description: "Failed to sign out",
+        variant: "destructive",
+      });
+    }
   };
 
   // Auto scroll to bottom when messages change

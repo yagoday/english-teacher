@@ -1,13 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+import api from '../services/api';
 
 export interface TranscriptionResponse {
   success: boolean;
@@ -34,7 +25,7 @@ export const speechApi = {
     formData.append('audio', audioBlob, 'recording.webm');
 
     try {
-      const response = await api.post<TranscriptionResponse>('/api/speech/transcribe', formData, {
+      const response = await api.post<TranscriptionResponse>('/speech/transcribe', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -51,7 +42,7 @@ export const speechApi = {
 
   async processText(text: string, userId: string, conversationId: string): Promise<ProcessResponse> {
     try {
-      const response = await api.post<ProcessResponse>('/api/speech/process', { 
+      const response = await api.post<ProcessResponse>('/speech/process', { 
         text,
         userId,
         conversationId
@@ -70,7 +61,7 @@ export const speechApi = {
 
   async resetConversation(): Promise<{ success: boolean }> {
     try {
-      const response = await api.post('/api/speech/reset');
+      const response = await api.post('/speech/reset');
       return response.data;
     } catch (error) {
       return { success: false };

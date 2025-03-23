@@ -7,7 +7,8 @@ import ffmpeg from 'ffmpeg-static';
 import { EnglishTeacherOrchestrator } from '../agents/EnglishTeacherOrchestrator';
 import OpenAI from 'openai';
 import { MessageService } from '../services/messageService';
-
+import { authenticateUser } from '../middleware/auth';
+import User from '../models/User';
 
 const execAsync = promisify(exec);
 const router = express.Router();
@@ -30,6 +31,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Apply authentication middleware to all routes
+router.use(authenticateUser);
+
 // Health check endpoint
 router.get('/health', (_req: Request, res: Response) => {
   res.json({ 
@@ -41,7 +45,8 @@ router.get('/health', (_req: Request, res: Response) => {
 // Process text through AI agent
 router.post('/process', async (req: Request, res: Response) => {
   try {
-    const { text, userId, conversationId } = req.body;
+    const { text, conversationId } = req.body;
+    const supabaseId = req.user?.id;
 
     if (!text) {
       return res.status(400).json({
@@ -50,22 +55,31 @@ router.post('/process', async (req: Request, res: Response) => {
       });
     }
 
-    if (!userId || !conversationId) {
+    if (!supabaseId || !conversationId) {
       return res.status(400).json({
         success: false,
         error: 'userId and conversationId are required'
       });
     }
 
+    // Get MongoDB user by Supabase ID
+    const user = await User.findOne({ supabaseId });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
     // Save student's message
-    const studentMessage = await MessageService.createMessage(userId, conversationId, text, 'student');
+    const studentMessage = await MessageService.createMessage(user._id.toString(), conversationId, text, 'student');
 
     // Process the text through AI
     const response = await agentOrchestrator.processInput(text);
 
     // Save tutor's response
     const tutorMessage = await MessageService.createMessage(
-      userId, 
+      user._id.toString(), 
       conversationId, 
       response.text, 
       'tutor'
@@ -114,7 +128,8 @@ router.post('/transcribe', upload.single('audio'), async (req: Request, res: Res
   try {
     console.log('Received audio file:', { 
       mimetype: req.file.mimetype, 
-      size: req.file.size 
+      size: req.file.size,
+      userId: req.user?.id 
     });
 
     // Convert WebM to MP3 using ffmpeg

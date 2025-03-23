@@ -40,12 +40,6 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
         setIsPlaying(false);
       });
 
-      audio.addEventListener('error', (e) => {
-        console.error('Audio error:', e);
-        setAudioError(true);
-        setIsPlaying(false);
-      });
-
       audio.addEventListener('canplaythrough', async () => {
         try {
           setAudioError(false);

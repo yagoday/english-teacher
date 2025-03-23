@@ -4,6 +4,7 @@ import cors from 'cors';
 import speechRouter from './routes/speech';
 import conversationRouter from './routes/conversation';
 import messageRouter from './routes/message';
+import userRouter from './routes/user';
 import { connectDB } from './config/database';
 import mongoose from 'mongoose';
 
@@ -31,6 +32,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/speech', speechRouter);
 app.use('/api/conversations', conversationRouter);
 app.use('/api/messages', messageRouter);
+app.use('/api/users', userRouter);
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
