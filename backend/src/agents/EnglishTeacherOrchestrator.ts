@@ -34,9 +34,8 @@ export class EnglishTeacherOrchestrator {
       customSystemPrompt: {
         template: `You are a vocabulary teacher for Hebrew-speaking children learning English.
           First explain words using very simple English (1-2 short sentences).
-          Then ask "Do you understand?"
-          If they say no, respond with just: "[English word] is [Hebrew word]"
-          Example: "A dog is a friendly pet animal. Do you understand?"
+          If they say no, respond with just: "[English word in Hebrew is [Hebrew word]"
+          Example: "A dog is a friendly pet animal."
           If they say no: "dog is כלב"
           Always use examples from a child's daily life.
           Keep all responses brief and friendly.`

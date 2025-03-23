@@ -1,31 +1,19 @@
-import api from '../services/api';
+import api from '@/services/api';
 
-export interface TranscriptionResponse {
+interface SpeechResponse {
   success: boolean;
-  text: string;
+  text?: string;
   error?: string;
-}
-
-export interface ProcessResponse {
-  success: boolean;
-  response: {
+  response?: {
     text: string;
     audioUrl?: string;
   };
-  messages?: {
-    student: any;
-    tutor: any;
-  };
-  error?: string;
 }
 
 export const speechApi = {
-  async transcribeAudio(audioBlob: Blob): Promise<TranscriptionResponse> {
-    const formData = new FormData();
-    formData.append('audio', audioBlob, 'recording.webm');
-
+  transcribeAudio: async (formData: FormData): Promise<SpeechResponse> => {
     try {
-      const response = await api.post<TranscriptionResponse>('/speech/transcribe', formData, {
+      const response = await api.post('/speech/transcribe', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -34,15 +22,14 @@ export const speechApi = {
     } catch (error: any) {
       return {
         success: false,
-        text: '',
-        error: error.response?.data?.error || 'Failed to transcribe audio',
+        error: error.response?.data?.error || 'Failed to transcribe audio'
       };
     }
   },
 
-  async processText(text: string, userId: string, conversationId: string): Promise<ProcessResponse> {
+  processText: async (text: string, userId: string, conversationId: string): Promise<SpeechResponse> => {
     try {
-      const response = await api.post<ProcessResponse>('/speech/process', { 
+      const response = await api.post('/speech/process', {
         text,
         userId,
         conversationId
@@ -51,20 +38,20 @@ export const speechApi = {
     } catch (error: any) {
       return {
         success: false,
-        response: {
-          text: '',
-        },
-        error: error.response?.data?.error || 'Failed to process text',
+        error: error.response?.data?.error || 'Failed to process text'
       };
     }
   },
 
-  async resetConversation(): Promise<{ success: boolean }> {
+  resetConversation: async (): Promise<SpeechResponse> => {
     try {
       const response = await api.post('/speech/reset');
       return response.data;
-    } catch (error) {
-      return { success: false };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to reset conversation'
+      };
     }
-  },
+  }
 }; 

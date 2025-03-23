@@ -17,17 +17,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Check active sessions and sets the user
-    console.log('AuthContext: Checking initial session...');
+    //console.log('AuthContext: Checking initial session...');
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('AuthContext: Initial session check result:', session ? 'User found' : 'No user');
+      //console.log('AuthContext: Initial session check result:', session ? 'User found' : 'No user');
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
     // Listen for auth changes
-    console.log('AuthContext: Setting up auth state change listener');
+    //console.log('AuthContext: Setting up auth state change listener');
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('AuthContext: Auth state changed2:', _event, session ? 'User present' : 'No user', session?.user );
+      //console.log('AuthContext: Auth state changed2:', _event, session ? 'User present' : 'No user', session?.user );
       setUser(session?.user ?? null);
     });
 
@@ -35,9 +35,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInWithGoogle = async () => {
-    console.log('AuthContext: Starting Google sign in...');
+    //console.log('AuthContext: Starting Google sign in...');
     try {
-      console.log('AuthContext: Calling Supabase signInWithOAuth...');
+      //console.log('AuthContext: Calling Supabase signInWithOAuth...');
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -46,22 +46,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       });
       
-      console.log('AuthContext: signInWithOAuth response:', { data, error });
+      //console.log('AuthContext: signInWithOAuth response:', { data, error });
       
       if (error) throw error;
       if (!data.url) throw new Error('No redirect URL returned');
       
-      console.log('AuthContext: Redirecting to Google URL:', data.url);
+      //console.log('AuthContext: Redirecting to Google URL:', data.url);
       // Force redirect to Google's sign-in page
       window.location.href = data.url;
     } catch (error) {
-      console.error('AuthContext: Error in signInWithGoogle:', error);
+      //console.error('AuthContext: Error in signInWithGoogle:', error);
       throw error;
     }
   };
 
   const signOut = async () => {
-    console.log('AuthContext: Starting sign out...');
+    //console.log('AuthContext: Starting sign out...');
     try {
       // Clear any existing sessions
       const { error } = await supabase.auth.signOut({ scope: 'global' });
@@ -70,9 +70,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Clear the user state
       setUser(null);
       
-      console.log('AuthContext: Successfully signed out');
+      //console.log('AuthContext: Successfully signed out');
     } catch (error) {
-      console.error('AuthContext: Error signing out:', error);
+      //console.error('AuthContext: Error signing out:', error);
       throw error;
     }
   };

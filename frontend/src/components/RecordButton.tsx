@@ -1,14 +1,16 @@
 import React, { useState, useRef } from "react";
-import { Mic, Send, X } from "lucide-react";
+import { Mic, Send, X, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { speechApi } from "@/lib/api";
 import { toast } from "@/components/ui/use-toast";
+import { Button } from '@/components/ui/button';
 
-interface RecordButtonProps {
+export interface RecordButtonProps {
   onRecordingComplete: (text: string) => void;
+  disabled?: boolean;
 }
 
-const RecordButton = ({ onRecordingComplete }: RecordButtonProps) => {
+const RecordButton: React.FC<RecordButtonProps> = ({ onRecordingComplete, disabled }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -30,16 +32,17 @@ const RecordButton = ({ onRecordingComplete }: RecordButtonProps) => {
 
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        setAudioBlob(audioBlob);
-        
+        const formData = new FormData();
+        formData.append('audio', audioBlob);
+
         try {
-          const transcriptionResult = await speechApi.transcribeAudio(audioBlob);
-          if (transcriptionResult.success && transcriptionResult.text) {
-            onRecordingComplete(transcriptionResult.text);
+          const response = await speechApi.transcribeAudio(formData);
+          if (response.success && response.text) {
+            onRecordingComplete(response.text);
           } else {
             toast({
               title: "Transcription failed",
-              description: transcriptionResult.error || "Failed to transcribe audio",
+              description: response.error || "Failed to transcribe audio",
               variant: "destructive",
             });
           }
@@ -51,8 +54,9 @@ const RecordButton = ({ onRecordingComplete }: RecordButtonProps) => {
           });
         }
 
-        // Stop all tracks
+        // Clean up
         stream.getTracks().forEach(track => track.stop());
+        chunksRef.current = [];
       };
 
       mediaRecorder.start();
@@ -125,18 +129,15 @@ const RecordButton = ({ onRecordingComplete }: RecordButtonProps) => {
         </div>
       )}
       
-      <button
-        onClick={toggleRecording}
-        className={cn(
-          "flex items-center justify-center rounded-full shadow-sm transition-all duration-300 ease-in-out",
-          isRecording 
-            ? "bg-student text-white h-12 w-12 hover:bg-student-dark" 
-            : "bg-student text-white h-14 w-14 hover:bg-student-dark"
-        )}
-        aria-label={isRecording ? "Stop recording" : "Start recording"}
+      <Button
+        variant={isRecording ? "destructive" : "default"}
+        size="icon"
+        className="rounded-full w-12 h-12"
+        onClick={isRecording ? stopRecording : startRecording}
+        disabled={disabled}
       >
-        {isRecording ? <Send size={18} /> : <Mic size={22} />}
-      </button>
+        {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+      </Button>
       
       {isRecording && (
         <div className="flex-1 h-10 rounded-full bg-white/50 backdrop-blur-sm animate-fade-in">

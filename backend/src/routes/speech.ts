@@ -123,7 +123,7 @@ router.post('/transcribe', upload.single('audio'), async (req: Request, res: Res
   }
 
   const inputPath = req.file.path;
-  const outputPath = inputPath.replace('.webm', '.mp3');
+  const outputPath = `${inputPath}-converted.mp3`;
 
   try {
     console.log('Received audio file:', { 
