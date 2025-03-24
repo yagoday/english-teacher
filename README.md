@@ -79,6 +79,85 @@ The application is configured for deployment on Railway. Follow these steps:
 2. Configure environment variables in Railway dashboard
 3. Deploy using the Railway CLI or automatic deployments
 
+## Deployment Guide
+
+### Prerequisites
+1. Railway account (https://railway.app)
+2. Railway CLI installed (`npm i -g @railway/cli`)
+3. Git repository pushed to GitHub
+
+### Deployment Steps
+
+#### 1. MongoDB Setup
+1. Log in to Railway Dashboard
+2. Create a new project
+3. Add MongoDB service from the "New Service" menu
+4. Save the MongoDB connection string from the "Connect" tab
+
+#### 2. Backend Deployment
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+2. Initialize Railway project:
+   ```bash
+   railway init
+   ```
+3. Link to the existing project:
+   ```bash
+   railway link
+   ```
+4. Add environment variables:
+   ```bash
+   railway vars set \
+     MONGODB_URI="your_mongodb_connection_string" \
+     NODE_ENV="production" \
+     OPENAI_API_KEY="your_openai_key" \
+     SUPABASE_URL="your_supabase_url" \
+     SUPABASE_KEY="your_supabase_key"
+   ```
+5. Deploy the backend:
+   ```bash
+   railway up
+   ```
+
+#### 3. Frontend Deployment
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+2. Initialize Railway project:
+   ```bash
+   railway init
+   ```
+3. Link to the existing project:
+   ```bash
+   railway link
+   ```
+4. Add environment variables:
+   ```bash
+   railway vars set \
+     VITE_API_URL="your_backend_url" \
+     VITE_SUPABASE_URL="your_supabase_url" \
+     VITE_SUPABASE_ANON_KEY="your_supabase_anon_key"
+   ```
+5. Deploy the frontend:
+   ```bash
+   railway up
+   ```
+
+### Post-Deployment
+1. Configure domains in Railway Dashboard for both frontend and backend services
+2. Update CORS settings in backend to allow the new frontend domain
+3. Test the application thoroughly
+4. Monitor logs and performance in Railway Dashboard
+
+### Maintenance
+- Monitor application logs through Railway Dashboard
+- Set up alerts for service health
+- Regularly update dependencies and redeploy
+- Monitor MongoDB performance and scaling needs
+
 ## Contributing
 
 1. Fork the repository
