@@ -75,7 +75,7 @@ router.post('/process', async (req: Request, res: Response) => {
     const studentMessage = await MessageService.createMessage(user._id.toString(), conversationId, text, 'student');
 
     // Process the text through AI
-    const response = await agentOrchestrator.processInput(text);
+    const response = await agentOrchestrator.processInput(text, user._id.toString(), conversationId);
 
     // Save tutor's response
     const tutorMessage = await MessageService.createMessage(

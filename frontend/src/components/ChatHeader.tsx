@@ -8,10 +8,10 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { CHAT_TYPES, ChatType } from '@/types';
+import { CONVERSATION_TYPES, ConversationType, ConversationTypeConfig } from '@/types';
 
 interface ChatHeaderProps {
-  onNewChat: (chatType: string) => void;
+  onNewChat: (type: ConversationType) => void;
   onSettingsClick: () => void;
   onLogout: () => void;
 }
@@ -31,14 +31,14 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          {Object.values(CHAT_TYPES).map((chatType: ChatType) => (
+          {Object.values(CONVERSATION_TYPES).map((config: ConversationTypeConfig) => (
             <DropdownMenuItem
-              key={chatType.id}
-              onClick={() => onNewChat(chatType.id)}
+              key={config.type}
+              onClick={() => onNewChat(config.type)}
             >
               <div className="flex flex-col">
-                <span className="font-medium">{chatType.name}</span>
-                <span className="text-sm text-gray-500">{chatType.description}</span>
+                <span className="font-medium">{config.label}</span>
+                <span className="text-sm text-gray-500">{config.description}</span>
               </div>
             </DropdownMenuItem>
           ))}

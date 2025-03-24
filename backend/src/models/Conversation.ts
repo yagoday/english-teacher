@@ -5,6 +5,9 @@ export interface IConversation extends Document {
   title: string;
   theme?: string;
   status: 'active' | 'completed';
+  type: string; // QnA, Test, Free, Teach
+  isActive: boolean;
+  summary?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -14,6 +17,19 @@ const ConversationSchema = new Schema<IConversation>({
   title: { type: String, required: true },
   theme: { type: String },
   status: { type: String, enum: ['active', 'completed'], default: 'active' },
+  type: { 
+    type: String, 
+    enum: ['QnA', 'Test', 'Free', 'Teach'], 
+    required: true 
+  },
+  isActive: { 
+    type: Boolean, 
+    default: true 
+  },
+  summary: { 
+    type: String, 
+    default: '' 
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

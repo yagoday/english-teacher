@@ -1,3 +1,6 @@
+// Conversation Types
+export type ConversationType = 'QnA' | 'Test' | 'Free' | 'Teach';
+
 export interface Message {
   id: string;
   userId: string;
@@ -12,6 +15,19 @@ export interface Message {
   timestamp: Date;
 }
 
+export interface Conversation {
+  _id: string;
+  userId: string;
+  title: string;
+  type: ConversationType;
+  theme?: string;
+  status: 'active' | 'completed';
+  isActive: boolean;
+  summary?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface BackendUser {
   _id: string;
   email: string;
@@ -19,36 +35,64 @@ export interface BackendUser {
   supabaseId: string;
 }
 
-export interface ChatType {
-  id: string;
-  name: string;
+export interface ConversationTypeConfig {
+  type: ConversationType;
+  label: string;
   description: string;
-  welcomeText: string;
+  icon?: string;
 }
 
-export const CHAT_TYPES: Record<string, ChatType> = {
-  teach: {
-    id: 'teach',
-    name: 'Teaching Session',
-    description: 'Learn new concepts and practice',
-    welcomeText: "I'm here to teach you! What would you like to learn today?"
+// Configuration for conversation types
+export const CONVERSATION_TYPES: Record<ConversationType, ConversationTypeConfig> = {
+  'QnA': {
+    type: 'QnA',
+    label: 'Questions & Answers',
+    description: 'Get answers to your English questions',
+    icon: '❓'
   },
-  answer: {
-    id: 'answer',
-    name: 'Q&A Session',
-    description: 'Get answers to your questions',
-    welcomeText: "I'm ready to answer your questions! What would you like to know?"
+  'Test': {
+    type: 'Test',
+    label: 'Test Your English',
+    description: 'Test your knowledge with practice questions',
+    icon: '📝'
   },
-  test: {
-    id: 'test',
-    name: 'Test Session',
-    description: 'Test your knowledge',
-    welcomeText: "Let's test your knowledge! I'll ask you some questions."
+  'Free': {
+    type: 'Free',
+    label: 'Free Conversation',
+    description: 'Practice casual English conversation',
+    icon: '💭'
   },
-  freestyle: {
-    id: 'freestyle',
-    name: 'Free Conversation',
-    description: 'Practice casual conversation',
-    welcomeText: "Let's chat freely! Talk to me about anything you'd like."
+  'Teach': {
+    type: 'Teach',
+    label: 'Learning Session',
+    description: 'Learn new English concepts and practice',
+    icon: '📚'
   }
-}; 
+};
+
+// API Response Types
+export interface StartConversationResponse {
+  success: boolean;
+  conversation: Conversation;
+  opening: {
+    text: string;
+    audioUrl?: string;
+  };
+}
+
+export interface EndConversationResponse {
+  success: boolean;
+  conversation: Conversation;
+}
+
+export interface ProcessMessageResponse {
+  success: boolean;
+  response: {
+    text: string;
+    audioUrl?: string;
+  };
+  messages: {
+    student: Message;
+    tutor: Message;
+  };
+} 

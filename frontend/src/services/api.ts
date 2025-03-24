@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { supabase } from '../lib/supabase';
+import { ConversationType, Conversation } from '@/types';
 
 // In Vite, we use import.meta.env for environment variables
 const API_BASE_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api`;
@@ -62,27 +63,42 @@ export const userApi = {
 
 // Conversation API
 export const conversationApi = {
-  create: async (userId: string, title: string, theme?: string) => {
-    const response = await api.post('/conversations', { userId, title, theme });
+  create: async (userId: string, title: string, type: ConversationType = 'Free', theme?: string): Promise<Conversation> => {
+    const response = await api.post('/conversations', { userId, title, type, theme });
     return response.data;
   },
 
-  getAll: async (userId: string) => {
+  start: async (userId: string, type: ConversationType): Promise<{ conversation: Conversation; opening: { text: string; audioUrl?: string } }> => {
+    const response = await api.post('/conversations/start', { userId, type });
+    return response.data;
+  },
+
+  end: async (id: string): Promise<Conversation> => {
+    const response = await api.post(`/conversations/${id}/end`);
+    return response.data;
+  },
+
+  getActive: async (userId: string): Promise<Conversation | null> => {
+    const response = await api.get(`/conversations/active?userId=${userId}`);
+    return response.data;
+  },
+
+  getAll: async (userId: string): Promise<Conversation[]> => {
     const response = await api.get(`/conversations/user/${userId}`);
     return response.data;
   },
 
-  getById: async (id: string) => {
+  getById: async (id: string): Promise<Conversation> => {
     const response = await api.get(`/conversations/${id}`);
     return response.data;
   },
 
-  complete: async (id: string) => {
-    const response = await api.patch(`/conversations/${id}/complete`);
-    return response.data;
+  complete: async (id: string): Promise<Conversation> => {
+    console.warn('conversationApi.complete() is deprecated. Use conversationApi.end() instead.');
+    return conversationApi.end(id);
   },
 
-  delete: async (id: string) => {
+  delete: async (id: string): Promise<void> => {
     await api.delete(`/conversations/${id}`);
   },
 };

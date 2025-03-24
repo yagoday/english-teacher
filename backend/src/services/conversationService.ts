@@ -13,9 +13,35 @@ export class ConversationService {
     return await conversation.save();
   }
 
+  // Create a new active conversation and deactivate any other active ones for the user
+  static async startNewActiveConversation(userId: string, title: string, type: string, theme?: string): Promise<IConversation> {
+    // Deactivate any currently active conversations for this user
+    await Conversation.updateMany(
+      { userId, isActive: true },
+      { isActive: false }
+    );
+    
+    // Create new active conversation
+    const conversation = new Conversation({
+      userId,
+      title,
+      type,
+      theme: theme || type.toLowerCase(), // Use type as theme by default if no theme provided
+      status: 'active',
+      isActive: true
+    });
+    
+    return await conversation.save();
+  }
+
   // Get conversation by ID
   static async getConversationById(conversationId: string): Promise<IConversation | null> {
     return await Conversation.findById(conversationId);
+  }
+
+  // Get the active conversation for a user
+  static async getActiveConversation(userId: string): Promise<IConversation | null> {
+    return await Conversation.findOne({ userId, isActive: true });
   }
 
   // Get all conversations for a user
@@ -28,6 +54,29 @@ export class ConversationService {
     return await Conversation.findByIdAndUpdate(
       conversationId,
       { status: 'completed' },
+      { new: true }
+    );
+  }
+
+  // Complete a conversation with summary and optional new title
+  static async completeConversationWithSummary(
+    conversationId: string, 
+    summary: string, 
+    newTitle?: string
+  ): Promise<IConversation | null> {
+    const updateData: Record<string, any> = { 
+      status: 'completed', 
+      isActive: false,
+      summary
+    };
+    
+    if (newTitle) {
+      updateData.title = newTitle;
+    }
+    
+    return await Conversation.findByIdAndUpdate(
+      conversationId,
+      updateData,
       { new: true }
     );
   }

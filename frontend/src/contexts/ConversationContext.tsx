@@ -1,34 +1,11 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { conversationApi, messageApi } from '@/services/api';
-
-interface Message {
-  id: string;
-  userId: string;
-  text: string;
-  sender: 'student' | 'tutor';
-  audioUrl?: string;
-  feedback?: {
-    liked: boolean;
-    disliked: boolean;
-    timestamp?: Date;
-  };
-  timestamp: Date;
-}
-
-interface Conversation {
-  id: string;
-  userId: string;
-  title: string;
-  theme?: string;
-  status: 'active' | 'completed';
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { Message, Conversation, ConversationType } from '@/types';
 
 interface ConversationContextType {
   activeConversation: Conversation | null;
   messages: Message[];
-  startNewConversation: (userId: string, title: string, theme?: string) => Promise<void>;
+  startNewConversation: (userId: string, type: ConversationType) => Promise<void>;
   loadConversation: (conversationId: string) => Promise<void>;
   addMessage: (userId: string, text: string, sender: 'student' | 'tutor', audioUrl?: string) => Promise<void>;
   completeConversation: () => Promise<void>;
@@ -48,11 +25,18 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
 
-  const startNewConversation = useCallback(async (userId: string, title: string, theme?: string) => {
+  const startNewConversation = useCallback(async (userId: string, type: ConversationType) => {
     try {
-      const conversation = await conversationApi.create(userId, title, theme);
+      const { conversation, opening } = await conversationApi.start(userId, type);
       setActiveConversation(conversation);
-      setMessages([]);
+      setMessages([{
+        id: `msg-${Date.now()}-tutor`,
+        userId,
+        text: opening.text,
+        sender: 'tutor',
+        audioUrl: opening.audioUrl,
+        timestamp: new Date()
+      }]);
     } catch (error) {
       console.error('Failed to start new conversation:', error);
       throw error;
@@ -86,7 +70,7 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       const message = await messageApi.create(
         userId,
-        activeConversation.id,
+        activeConversation._id,
         text,
         sender
       );
@@ -104,7 +88,7 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
 
     try {
-      const updatedConversation = await conversationApi.complete(activeConversation.id);
+      const updatedConversation = await conversationApi.end(activeConversation._id);
       setActiveConversation(updatedConversation);
     } catch (error) {
       console.error('Failed to complete conversation:', error);

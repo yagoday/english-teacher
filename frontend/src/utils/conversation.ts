@@ -1,6 +1,6 @@
 import { speechApi } from '@/lib/api';
 import { conversationApi, messageApi } from '@/services/api';
-import { Message, BackendUser, CHAT_TYPES } from '@/types';
+import { Message, BackendUser, CONVERSATION_TYPES, ConversationType } from '@/types';
 import { SetStateAction } from 'react';
 
 export const initializeConversation = async (
@@ -26,9 +26,18 @@ export const initializeConversation = async (
   }
   
   try {
-    const conversation = await conversationApi.create(backendUser._id, "English Learning Session", "general");
+    // Start with a Free conversation type by default
+    const { conversation, opening } = await conversationApi.start(backendUser._id, 'Free');
     setCurrentConversationId(conversation._id);
     sessionStorage.setItem('currentConversationId', conversation._id);
+    setMessages([{
+      id: `msg-${Date.now()}-tutor`,
+      userId: backendUser._id,
+      text: opening.text,
+      sender: 'tutor',
+      audioUrl: opening.audioUrl,
+      timestamp: new Date()
+    }]);
   } catch (error) {
     console.error('Failed to create new conversation:', error);
     throw new Error('Failed to start conversation. Please try logging out and back in.');
@@ -82,32 +91,36 @@ export const processUserMessage = async (
 };
 
 export const startNewChat = async (
-  chatType: string,
+  type: ConversationType,
   backendUser: BackendUser | null,
   setMessages: (value: SetStateAction<Message[]>) => void,
   setCurrentConversationId: (id: string) => void
 ): Promise<void> => {
+  if (!backendUser) {
+    throw new Error('No user logged in');
+  }
+
   setMessages([]);
   
   try {
     await speechApi.resetConversation();
     
-    const conversation = await conversationApi.create(backendUser?._id || '', chatType, chatType);
+    const { conversation, opening } = await conversationApi.start(backendUser._id, type);
     setCurrentConversationId(conversation._id);
     sessionStorage.setItem('currentConversationId', conversation._id);
     
-    const welcomeText = CHAT_TYPES[chatType]?.welcomeText || "Hi there! How can I help you with your English today?";
-    
     const tutorMessage: Message = {
       id: `msg-${Date.now()}-tutor`,
-      userId: backendUser?._id || '',
-      text: welcomeText,
+      userId: backendUser._id,
+      text: opening.text,
       sender: "tutor",
+      audioUrl: opening.audioUrl,
       timestamp: new Date()
     };
     
     setMessages([tutorMessage]);
   } catch (error) {
+    console.error('Failed to start new chat:', error);
     throw new Error('Failed to start new chat');
   }
 }; 
