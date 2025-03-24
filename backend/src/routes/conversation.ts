@@ -40,6 +40,12 @@ router.post('/start', async (req: Request<{}, {}, StartConversationBody>, res: R
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Get and end the current active conversation if it exists
+    const activeConversation = await ConversationService.getActiveConversation(user._id.toString());
+    if (activeConversation) {
+      await agentOrchestrator.endConversation(activeConversation._id.toString());
+    }
+
     // Create a default title based on type
     const defaultTitle = `${type} English Session`;
     
