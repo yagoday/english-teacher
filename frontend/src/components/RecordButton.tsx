@@ -4,13 +4,15 @@ import { cn } from "@/lib/utils";
 import { speechApi } from "@/lib/api";
 import { toast } from "@/components/ui/use-toast";
 import { Button } from '@/components/ui/button';
+import ThinkingIndicator from './ThinkingIndicator';
 
 export interface RecordButtonProps {
   onRecordingComplete: (text: string) => void;
   disabled?: boolean;
+  isThinking?: boolean;
 }
 
-const RecordButton: React.FC<RecordButtonProps> = ({ onRecordingComplete, disabled }) => {
+const RecordButton: React.FC<RecordButtonProps> = ({ onRecordingComplete, disabled, isThinking }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -128,16 +130,24 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onRecordingComplete, disabl
           </button>
         </div>
       )}
-      
+
       <Button
         variant={isRecording ? "destructive" : "default"}
         size="icon"
         className="rounded-full w-12 h-12"
         onClick={isRecording ? stopRecording : startRecording}
-        disabled={disabled}
+        disabled={disabled || isThinking}
       >
         {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
       </Button>
+      
+      <div className="flex-1 flex justify-center">
+        {isThinking && !isRecording && (
+          <div className="animate-fade-in">
+            <ThinkingIndicator />
+          </div>
+        )}
+      </div>
       
       {isRecording && (
         <div className="flex-1 h-10 rounded-full bg-white/50 backdrop-blur-sm animate-fade-in">

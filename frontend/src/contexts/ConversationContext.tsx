@@ -1,14 +1,17 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { conversationApi, messageApi } from '@/services/api';
+import { speechApi } from '@/lib/api';
 import { Message, Conversation, ConversationType } from '@/types';
 
 interface ConversationContextType {
   activeConversation: Conversation | null;
   messages: Message[];
+  isThinking: boolean;
   startNewConversation: (userId: string, type: ConversationType) => Promise<void>;
   loadConversation: (conversationId: string) => Promise<void>;
   addMessage: (userId: string, text: string, sender: 'student' | 'tutor', audioUrl?: string) => Promise<void>;
   completeConversation: () => Promise<void>;
+  processMessage: (userId: string, text: string) => Promise<void>;
 }
 
 const ConversationContext = createContext<ConversationContextType | undefined>(undefined);
@@ -24,6 +27,7 @@ export const useConversation = () => {
 export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isThinking, setIsThinking] = useState(false);
 
   const startNewConversation = useCallback(async (userId: string, type: ConversationType) => {
     try {
@@ -82,6 +86,51 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [activeConversation]);
 
+  const processMessage = useCallback(async (userId: string, text: string) => {
+    if (!activeConversation) {
+      throw new Error('No active conversation');
+    }
+
+    // Add user message
+    const studentMessage: Message = {
+      id: `msg-${Date.now()}-student`,
+      userId,
+      text,
+      sender: 'student',
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, studentMessage]);
+    
+    // Start thinking state
+    setIsThinking(true);
+    
+    try {
+      // Process the message
+      const response = await speechApi.processText(text, userId, activeConversation._id);
+      
+      if (response.success && response.response) {
+        const tutorMessage: Message = {
+          id: `msg-${Date.now()}-tutor`,
+          userId,
+          text: response.response.text,
+          sender: 'tutor',
+          audioUrl: response.response.audioUrl,
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, tutorMessage]);
+      } else {
+        throw new Error(response.error || "Failed to get tutor's response");
+      }
+    } catch (error) {
+      throw new Error('Failed to process your message');
+    } finally {
+      // End thinking state
+      setIsThinking(false);
+    }
+  }, [activeConversation]);
+
   const completeConversation = useCallback(async () => {
     if (!activeConversation) {
       throw new Error('No active conversation');
@@ -101,10 +150,12 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       value={{
         activeConversation,
         messages,
+        isThinking,
         startNewConversation,
         loadConversation,
         addMessage,
         completeConversation,
+        processMessage,
       }}
     >
       {children}

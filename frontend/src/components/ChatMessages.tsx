@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import ChatMessage from '@/components/ChatMessage';
-import EmptyState from '@/components/EmptyState';
+import ThinkingIndicator from '@/components/ThinkingIndicator';
 import { Message } from '@/types';
 
 interface ChatMessagesProps {
@@ -18,8 +18,12 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isProcessing }) =
     }
   }, [messages]);
 
-  if (messages.length === 0 && !isProcessing) {
-    return <EmptyState />;
+  if (messages.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+       <ThinkingIndicator />
+      </div>
+    );
   }
 
   return (
@@ -31,7 +35,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isProcessing }) =
         <ChatMessage
           key={message.id}
           message={message}
-          isProcessing={isProcessing && message === messages[messages.length - 1]}
         />
       ))}
     </div>

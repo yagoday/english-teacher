@@ -15,7 +15,7 @@ import SettingsPanel from "@/components/SettingsPanel";
 import { userApi } from "@/services/api";
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Message, BackendUser } from '@/types';
+import { Message, BackendUser, ConversationType } from '@/types';
 import { initializeConversation, processUserMessage, startNewChat } from '@/utils/conversation';
 
 const Index = () => {
@@ -86,9 +86,9 @@ const Index = () => {
     }
   };
 
-  const handleNewChat = async (chatType: string) => {
+  const handleNewChat = async (type: ConversationType) => {
     try {
-      await startNewChat(chatType, backendUser, setMessages, setCurrentConversationId);
+      await startNewChat(type, backendUser, setMessages, setCurrentConversationId);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -131,6 +131,7 @@ const Index = () => {
         <RecordButton
           onRecordingComplete={handleRecordingComplete}
           disabled={isProcessing || !currentConversationId}
+          isThinking={isProcessing}
         />
       </div>
 
