@@ -103,19 +103,6 @@ router.post('/process', async (req: Request, res: Response) => {
   }
 });
 
-// Reset conversation context
-router.post('/reset', (_req: Request, res: Response) => {
-  try {
-    agentOrchestrator.resetConversation();
-    return res.json({ success: true });
-  } catch (error: any) {
-    return res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to reset conversation'
-    });
-  }
-});
-
 // Transcribe audio endpoint
 router.post('/transcribe', upload.single('audio'), async (req: Request, res: Response) => {
   if (!req.file) {
