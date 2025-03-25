@@ -17,9 +17,10 @@ interface ChatMessageProps {
     };
     timestamp: Date;
   };
+  userName: string;
 }
 
-const ChatMessage = ({ message }: ChatMessageProps) => {
+const ChatMessage = ({ message, userName }: ChatMessageProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioError, setAudioError] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -151,7 +152,7 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
     >
       <div className="mb-1">
         <span className="text-xs font-semibold uppercase tracking-wider">
-          {isAi ? "Tutor" : "You"}
+          {isAi ? "Tutor" : userName}
         </span>
       </div>
       

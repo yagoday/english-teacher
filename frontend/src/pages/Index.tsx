@@ -125,6 +125,7 @@ const Index = () => {
       <ChatMessages
         messages={messages}
         isProcessing={isProcessing}
+        userName={(backendUser?.name || 'You').split(' ')[0]}
       />
 
       <div className="p-4 border-t">

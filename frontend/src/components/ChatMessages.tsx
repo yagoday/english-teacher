@@ -6,9 +6,10 @@ import { Message } from '@/types';
 interface ChatMessagesProps {
   messages: Message[];
   isProcessing: boolean;
+  userName: string;
 }
 
-const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isProcessing }) => {
+const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isProcessing, userName }) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom when messages change
@@ -35,6 +36,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, isProcessing }) =
         <ChatMessage
           key={message.id}
           message={message}
+          userName={userName}
         />
       ))}
     </div>

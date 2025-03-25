@@ -3,6 +3,11 @@ import { conversationApi, messageApi } from '@/services/api';
 import { Message, BackendUser, CONVERSATION_TYPES, ConversationType } from '@/types';
 import { SetStateAction } from 'react';
 
+// Helper function to generate unique message IDs
+const generateMessageId = (sender: 'student' | 'ai' | 'tutor'): string => {
+  return `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${sender}`;
+};
+
 export const initializeConversation = async (
   backendUser: BackendUser | null,
   setCurrentConversationId: (id: string) => void,
@@ -17,7 +22,12 @@ export const initializeConversation = async (
       const conversation = await conversationApi.getById(storedConversationId);
       const conversationMessages = await messageApi.getByConversation(storedConversationId);
       setCurrentConversationId(storedConversationId);
-      setMessages(conversationMessages);
+      // Transform MongoDB IDs to our frontend format
+      const transformedMessages = conversationMessages.map((msg: any) => ({
+        ...msg,
+        id: generateMessageId(msg.sender)
+      }));
+      setMessages(transformedMessages);
       return;
     } catch (error) {
       console.error('Failed to load stored conversation:', error);
@@ -31,7 +41,7 @@ export const initializeConversation = async (
     setCurrentConversationId(conversation._id);
     sessionStorage.setItem('currentConversationId', conversation._id);
     setMessages([{
-      id: `msg-${Date.now()}-tutor`,
+      id: generateMessageId('tutor'),
       userId: backendUser._id,
       text: opening.text,
       sender: 'ai',
@@ -59,7 +69,7 @@ export const processUserMessage = async (
   }
 
   const studentMessage: Message = {
-    id: `msg-${Date.now()}-student`,
+    id: generateMessageId('student'),
     userId: backendUser?._id || '',
     text,
     sender: "student",
@@ -73,7 +83,7 @@ export const processUserMessage = async (
     
     if (response.success && response.response) {
       const aiMessage: Message = {
-        id: `msg-${Date.now()}-ai`,
+        id: generateMessageId('ai'),
         userId: backendUser?._id || '',
         text: response.response.text,
         sender: "ai",
@@ -108,7 +118,7 @@ export const startNewChat = async (
     sessionStorage.setItem('currentConversationId', conversation._id);
     
     const tutorMessage: Message = {
-      id: `msg-${Date.now()}-tutor`,
+      id: generateMessageId('tutor'),
       userId: backendUser._id,
       text: opening.text,
       sender: "ai",
