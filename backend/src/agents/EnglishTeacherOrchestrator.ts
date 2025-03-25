@@ -3,6 +3,8 @@ import { createOpenAIClient } from "./config/agentConfig";
 import { createVocabularyAgent } from "./agents/vocabularyAgent";
 import { createConversationAgent } from "./agents/conversationAgent";
 import { createFixerAgent } from "./agents/fixerAgent";
+import { createTeachingAgent } from "./agents/teachingAgent";
+import { createQnAAgent } from "./agents/qnaAgent";
 import { createClassifier } from "./agents/classifier";
 import { ConversationService } from "../services/conversationService";
 import { MessageService } from "../services/messageService";
@@ -29,23 +31,29 @@ export class EnglishTeacherOrchestrator {
     const vocabularyAgent = createVocabularyAgent(this.openAIClient);
     const conversationAgent = createConversationAgent(this.openAIClient);
     const fixerAgent = createFixerAgent(this.openAIClient);
+    const teachingAgent = createTeachingAgent(this.openAIClient);
+    const qnaAgent = createQnAAgent(this.openAIClient);
     const classifier = createClassifier(process.env.OPENAI_API_KEY!);
 
     // Initialize the orchestrator
     this.orchestrator = new MultiAgentOrchestrator({
       classifier,
-      defaultAgent: conversationAgent
+      defaultAgent: fixerAgent // Changed to fixer as default for error cases
     });
     
     // Add agents to the orchestrator
     this.orchestrator.addAgent(vocabularyAgent);
     this.orchestrator.addAgent(conversationAgent);
     this.orchestrator.addAgent(fixerAgent);
+    this.orchestrator.addAgent(teachingAgent);
+    this.orchestrator.addAgent(qnaAgent);
 
     console.debug('Orchestrator initialized with agents:', [
       vocabularyAgent.name, 
       conversationAgent.name, 
-      fixerAgent.name
+      fixerAgent.name,
+      teachingAgent.name,
+      qnaAgent.name
     ]);
   }
 

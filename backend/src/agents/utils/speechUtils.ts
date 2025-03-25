@@ -52,7 +52,7 @@ export class SpeechUtils {
       return cachedAudio;
     }
 
-    console.debug(`Cache miss for phrase: "${phrase}"`);
+    // console.debug(`Cache miss for phrase: "${phrase}"`);
     try {
       const mp3 = await this.openAIClient.audio.speech.create({
         model: "tts-1",
@@ -71,7 +71,7 @@ export class SpeechUtils {
           this.audioCache.delete(firstKey);
         }
         this.audioCache.set(cacheKey, base64Data);
-        console.debug(`Cached phrase: "${phrase}"`);
+        // console.debug(`Cached phrase: "${phrase}"`);
       }
 
       return base64Data;
@@ -113,7 +113,7 @@ export class SpeechUtils {
 
     // Split into phrases
     const phrases = this.splitIntoPhrases(text);
-    console.debug('Split into phrases:', phrases);
+   // console.debug('Split into phrases:', phrases);
 
     // Generate audio for each phrase (potentially from cache)
     const audioPromises = phrases.map(phrase => this.generateSpeechForPhrase(phrase));
