@@ -8,7 +8,7 @@ import { EnglishTeacherOrchestrator } from '../agents/EnglishTeacherOrchestrator
 import OpenAI from 'openai';
 import { MessageService } from '../services/messageService';
 import { authenticateUser } from '../middleware/auth';
-import User from '../models/User';
+import { UserService } from '../services/userService';
 
 const execAsync = promisify(exec);
 const router = express.Router();
@@ -63,7 +63,7 @@ router.post('/process', async (req: Request, res: Response) => {
     }
 
     // Get MongoDB user by Supabase ID
-    const user = await User.findOne({ supabaseId });
+    const user = await UserService.getUserBySupabaseId(supabaseId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -82,7 +82,7 @@ router.post('/process', async (req: Request, res: Response) => {
       user._id.toString(), 
       conversationId, 
       response.text, 
-      'tutor'
+      'ai'
     );
 
     return res.json({

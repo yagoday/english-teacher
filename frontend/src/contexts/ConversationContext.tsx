@@ -9,7 +9,7 @@ interface ConversationContextType {
   isThinking: boolean;
   startNewConversation: (userId: string, type: ConversationType) => Promise<void>;
   loadConversation: (conversationId: string) => Promise<void>;
-  addMessage: (userId: string, text: string, sender: 'student' | 'tutor', audioUrl?: string) => Promise<void>;
+  addMessage: (userId: string, text: string, sender: 'student' | 'ai', audioUrl?: string) => Promise<void>;
   completeConversation: () => Promise<void>;
   processMessage: (userId: string, text: string) => Promise<void>;
 }
@@ -64,7 +64,7 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const addMessage = useCallback(async (
     userId: string,
     text: string,
-    sender: 'student' | 'tutor',
+    sender: 'student' | 'ai',
     audioUrl?: string
   ) => {
     if (!activeConversation) {

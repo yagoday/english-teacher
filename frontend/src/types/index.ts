@@ -1,11 +1,11 @@
 // Conversation Types
-export type ConversationType = 'QnA' | 'Test' | 'Free' | 'Teach';
+export type ConversationType = 'QnA' | 'Free' | 'Teach';
 
 export interface Message {
   id: string;
   userId: string;
   text: string;
-  sender: "student" | "tutor";
+  sender: "student" | "ai";
   audioUrl?: string;
   feedback?: {
     liked: boolean;
@@ -50,12 +50,12 @@ export const CONVERSATION_TYPES: Record<ConversationType, ConversationTypeConfig
     description: 'Get answers to your English questions',
     icon: '❓'
   },
-  'Test': {
-    type: 'Test',
-    label: 'Test Your English',
-    description: 'Test your knowledge with practice questions',
-    icon: '📝'
-  },
+  // 'Test': {
+  //   type: 'Test',
+  //   label: 'Test Your English',
+  //   description: 'Test your knowledge with practice questions',
+  //   icon: '📝'
+  // },
   'Free': {
     type: 'Free',
     label: 'Free Conversation',

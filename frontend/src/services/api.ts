@@ -105,7 +105,7 @@ export const conversationApi = {
 
 // Message API
 export const messageApi = {
-  create: async (userId: string, conversationId: string, text: string, sender: 'student' | 'tutor') => {
+  create: async (userId: string, conversationId: string, text: string, sender: 'student' | 'ai') => {
     const response = await api.post('/messages', { userId, conversationId, text, sender });
     return response.data;
   },

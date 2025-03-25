@@ -4,7 +4,7 @@ import { MessageService } from '../services/messageService';
 import { EnglishTeacherOrchestrator } from '../agents/EnglishTeacherOrchestrator';
 import mongoose from 'mongoose';
 import { authenticateUser } from '../middleware/auth';
-import User from '../models/User';
+import { UserService } from '../services/userService';
 
 const router = express.Router();
 
@@ -35,7 +35,7 @@ router.post('/start', async (req: Request<{}, {}, StartConversationBody>, res: R
     }
 
     // Get MongoDB user by Supabase ID
-    const user = await User.findOne({ supabaseId });
+    const user = await UserService.getUserBySupabaseId(supabaseId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -65,7 +65,7 @@ router.post('/start', async (req: Request<{}, {}, StartConversationBody>, res: R
       user._id.toString(),
       conversation._id.toString(),
       opening.text,
-      'tutor'
+      'ai'
     );
     
     return res.status(201).json({
@@ -94,7 +94,7 @@ router.post('/:id/end', async (req: Request<{ id: string }>, res: Response) => {
     }
 
     // Get MongoDB user by Supabase ID
-    const user = await User.findOne({ supabaseId });
+    const user = await UserService.getUserBySupabaseId(supabaseId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -136,7 +136,7 @@ router.get('/active', async (req: Request, res: Response) => {
     }
 
     // Get MongoDB user by Supabase ID
-    const user = await User.findOne({ supabaseId });
+    const user = await UserService.getUserBySupabaseId(supabaseId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -205,7 +205,7 @@ router.delete('/:id', async (req: Request<{ id: string }>, res: Response) => {
     }
 
     // Get MongoDB user by Supabase ID
-    const user = await User.findOne({ supabaseId });
+    const user = await UserService.getUserBySupabaseId(supabaseId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }

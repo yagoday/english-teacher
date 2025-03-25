@@ -9,6 +9,7 @@ import { MessageService } from "../services/messageService";
 import { IMessage } from "../models/Message";
 import OpenAI from "openai";
 import { SpeechUtils } from "./utils/speechUtils";
+import { UserService } from "../services/userService";
 
 interface AgentResponse {
   text: string;
@@ -125,29 +126,74 @@ export class EnglishTeacherOrchestrator {
   /**
    * Generate a conversation opening based on type
    */
-  async generateConversationOpening(_userId: string, type: string): Promise<AgentResponse> {
-    const prompt = `You are an English teacher for Hebrew-speaking children. 
-      Generate a friendly opening message for a ${type} conversation. 
-      For QnA, be ready to answer questions. 
-      For Test, explain you'll be testing their knowledge. 
-      For Free, encourage open conversation. 
-      For Teach, explain you'll help them learn new concepts.
-      Keep your response 2 sentences, friendly, and appropriate for children aged 5-12 and should only refert to ${type} conversation.`;
-    
+  async generateConversationOpening(userId: string, type: string): Promise<AgentResponse> {
     try {
-      const response = await this.openAIClient.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [{ role: "system", content: prompt }]
-      });
+      // Get user information
+      const user = await UserService.getUserById(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const firstName = user.name.split(' ')[0];
       
-      const text = response.choices[0].message.content || `Welcome to your ${type} English session!`;
-      const audioUrl = await this.speechUtils.generateSpeech(text);
+      // Define type-specific prompts and fallbacks
+      const typePrompts = {
+        QnA: {
+          prompt: `You are an English teacher for Hebrew-speaking children.
+            ${firstName} is here for a Question and Answer session.
+            Create a warm, inviting opening that:
+            1. Greets ${firstName} personally
+            2. Tell them you are about to ask them questions to help them learn English
+            3. Start with a simple question, like how is there day going or something similar.
+            Keep it to 2-3 short, simple sentences.
+            Make it sound natural and friendly, like talking to a young friend.`,
+          fallback: `Hi ${firstName}! I'm excited to answer all your English questions today. What would you like to know about?`
+        },
+        Free: {
+          prompt: `You are an English teacher for Hebrew-speaking children.
+            ${firstName} is here for a free conversation practice.
+            Create a casual, friendly opening that:
+            1. Greets ${firstName} warmly
+            2. Invites them to chat about anything they like
+            3. Makes them feel excited about practicing English conversation
+            Keep it to 2-3 short, simple sentences.
+            Make it playful and encouraging.`,
+          fallback: `Hey ${firstName}! Let's have a fun chat in English about anything you like. What's on your mind today?`
+        },
+        Teach: {
+          prompt: `You are an English teacher for Hebrew-speaking children.
+            ${firstName} is here to learn new English concepts.
+            Create an enthusiastic opening that:
+            1. Greets ${firstName} with energy
+            2. Mentions you'll be learning new things together
+            3. Makes learning sound exciting and fun
+            4. Ask them to think of a word or phrase they want to learn
+            Keep it to 2-3 short, simple sentences.
+            Make it motivating and positive.`,
+          fallback: `Hi ${firstName}! I'm excited to teach you some cool new English words and phrases today. Are you ready to learn something fun?`
+        }
+      };
+
+      const typeConfig = typePrompts[type as keyof typeof typePrompts] || typePrompts.Free;
       
-      return { text, audioUrl };
+      try {
+        const response = await this.openAIClient.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "system", content: typeConfig.prompt }]
+        });
+        
+        const text = response.choices[0].message.content || typeConfig.fallback;
+        const audioUrl = await this.speechUtils.generateSpeech(text);
+        
+        return { text, audioUrl };
+      } catch (error) {
+        console.error('Error generating conversation opening:', error);
+        return { text: typeConfig.fallback };
+      }
     } catch (error) {
-      console.error('Error generating conversation opening:', error);
-      return { 
-        text: `Welcome to your ${type} English session! I'm here to help you practice.`
+      console.error('Error getting user:', error);
+      return {
+        text: `Welcome to your English session! I'm here to help you practice.`
       };
     }
   }

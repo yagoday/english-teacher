@@ -8,7 +8,7 @@ interface ChatMessageProps {
     id: string;
     userId: string;
     text: string;
-    sender: "student" | "tutor";
+    sender: "student" | "ai";
     audioUrl?: string;
     feedback?: {
       liked: boolean;
@@ -25,10 +25,10 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
   const [liked, setLiked] = useState(message.feedback?.liked || false);
   const [audioError, setAudioError] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const isTutor = message.sender === "tutor";
+  const isAi = message.sender === "ai";
 
   useEffect(() => {
-    if (message.audioUrl && isTutor) {
+    if (message.audioUrl && isAi) {
       // Create a new audio element
       const audio = new Audio();
       
@@ -73,7 +73,7 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
         }
       };
     }
-  }, [message.audioUrl, isTutor]);
+  }, [message.audioUrl, isAi]);
 
   const handlePlayPause = async () => {
     if (!audioRef.current) return;
@@ -134,20 +134,20 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
     <div
       className={cn(
         "w-full max-w-[85%] p-4 rounded-2xl animate-fade-in mb-4 shadow-sm",
-        isTutor 
+        isAi 
           ? "tutor-message self-start rounded-bl-sm" 
           : "student-message self-end rounded-br-sm"
       )}
     >
       <div className="mb-1">
         <span className="text-xs font-semibold uppercase tracking-wider">
-          {isTutor ? "Tutor" : "You"}
+          {isAi ? "Tutor" : "You"}
         </span>
       </div>
       
       <p className="text-sm md:text-base">{message.text}</p>
       
-      {isTutor && message.audioUrl && (
+      {isAi && message.audioUrl && (
         <div className="flex items-center mt-3 gap-3">
           <button
             onClick={handlePlayPause}

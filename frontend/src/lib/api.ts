@@ -42,16 +42,4 @@ export const speechApi = {
       };
     }
   },
-
-  resetConversation: async (): Promise<SpeechResponse> => {
-    try {
-      const response = await api.post('/speech/reset');
-      return response.data;
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.error || 'Failed to reset conversation'
-      };
-    }
-  }
 }; 

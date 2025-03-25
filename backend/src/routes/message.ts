@@ -12,7 +12,7 @@ interface CreateMessageBody {
   userId: string;
   conversationId: string;
   text: string;
-  sender: 'student' | 'tutor';
+  sender: 'student' | 'ai';
 }
 
 interface UpdateFeedbackBody {
@@ -44,8 +44,8 @@ router.post('/', async (req: Request<{}, {}, CreateMessageBody>, res: Response) 
     }
 
     // Validate sender type
-    if (!['student', 'tutor'].includes(sender)) {
-      return res.status(400).json({ error: 'Invalid sender type. Must be "student" or "tutor"' });
+    if (!['student', 'ai'].includes(sender)) {
+      return res.status(400).json({ error: 'Invalid sender type. Must be "student" or "ai"' });
     }
 
     const message = await MessageService.createMessage(userId, conversationId, text, sender);

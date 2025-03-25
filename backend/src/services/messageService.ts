@@ -1,13 +1,26 @@
 import { Message, IMessage } from '../models/Message';
 import { ConversationService } from './conversationService';
 
+interface MessageMetadata {
+  agentName: string;
+  processingTime: number;
+  conversationType: string;
+}
+
+interface SaveMessageParams {
+  conversationId: string;
+  sender: 'ai' | 'student';
+  text: string;
+  metadata?: MessageMetadata;
+}
+
 export class MessageService {
   // Create a new message
   static async createMessage(
     userId: string,
     conversationId: string,
     text: string,
-    sender: 'student' | 'tutor'
+    sender: 'ai' | 'student'
   ): Promise<IMessage> {
     // Verify conversation exists
     const conversation = await ConversationService.getConversationById(conversationId);
@@ -20,6 +33,25 @@ export class MessageService {
       conversationId,
       text,
       sender
+    });
+    return await message.save();
+  }
+
+  // Save a message with metadata
+  static async saveMessage(params: SaveMessageParams): Promise<IMessage> {
+    const { conversationId, sender, text, metadata } = params;
+    
+    // Verify conversation exists
+    const conversation = await ConversationService.getConversationById(conversationId);
+    if (!conversation) {
+      throw new Error('Conversation not found');
+    }
+
+    const message = new Message({
+      conversationId,
+      text,
+      sender,
+      metadata
     });
     return await message.save();
   }

@@ -34,7 +34,7 @@ export const initializeConversation = async (
       id: `msg-${Date.now()}-tutor`,
       userId: backendUser._id,
       text: opening.text,
-      sender: 'tutor',
+      sender: 'ai',
       audioUrl: opening.audioUrl,
       timestamp: new Date()
     }]);
@@ -62,7 +62,7 @@ export const processUserMessage = async (
     id: `msg-${Date.now()}-student`,
     userId: backendUser?._id || '',
     text,
-    sender: "student",
+    sender: "ai",
     timestamp: new Date()
   };
   
@@ -76,7 +76,7 @@ export const processUserMessage = async (
         id: `msg-${Date.now()}-tutor`,
         userId: backendUser?._id || '',
         text: response.response.text,
-        sender: "tutor",
+        sender: "ai",
         audioUrl: response.response.audioUrl,
         timestamp: new Date()
       };
@@ -103,8 +103,6 @@ export const startNewChat = async (
   setMessages([]);
   
   try {
-    await speechApi.resetConversation();
-    
     const { conversation, opening } = await conversationApi.start(backendUser._id, type);
     setCurrentConversationId(conversation._id);
     sessionStorage.setItem('currentConversationId', conversation._id);
@@ -113,7 +111,7 @@ export const startNewChat = async (
       id: `msg-${Date.now()}-tutor`,
       userId: backendUser._id,
       text: opening.text,
-      sender: "tutor",
+      sender: "ai",
       audioUrl: opening.audioUrl,
       timestamp: new Date()
     };
