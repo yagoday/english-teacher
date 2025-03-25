@@ -5,13 +5,15 @@ import { createConversationAgent } from "./agents/conversationAgent";
 import { createFixerAgent } from "./agents/fixerAgent";
 import { createTeachingAgent } from "./agents/teachingAgent";
 import { createQnAAgent } from "./agents/qnaAgent";
-import { createClassifier } from "./agents/classifier";
+import {  createTeachingClassifier } from "./agents/classifier";
 import { ConversationService } from "../services/conversationService";
 import { MessageService } from "../services/messageService";
 import { IMessage } from "../models/Message";
 import OpenAI from "openai";
 import { SpeechUtils } from "./utils/speechUtils";
 import { UserService } from "../services/userService";
+import { createConversationClassifier } from "./agents/conversationClassifier";
+import { createQnAClassifier } from "./agents/qnaClassifier";
 
 interface AgentResponse {
   text: string;
@@ -19,7 +21,9 @@ interface AgentResponse {
 }
 
 export class EnglishTeacherOrchestrator {
-  private orchestrator: MultiAgentOrchestrator;
+  private conversationOrchestrator: MultiAgentOrchestrator;
+  private qnaOrchestrator: MultiAgentOrchestrator;
+  private teachingOrchestrator: MultiAgentOrchestrator;
   private openAIClient: OpenAI;
   private speechUtils: SpeechUtils;
 
@@ -33,28 +37,38 @@ export class EnglishTeacherOrchestrator {
     const fixerAgent = createFixerAgent(this.openAIClient);
     const teachingAgent = createTeachingAgent(this.openAIClient);
     const qnaAgent = createQnAAgent(this.openAIClient);
-    const classifier = createClassifier(process.env.OPENAI_API_KEY!);
+    const teachingClassifier = createTeachingClassifier(process.env.OPENAI_API_KEY!);
+    const conversationClassifier = createConversationClassifier(process.env.OPENAI_API_KEY!);
+    const qnaClassifier = createQnAClassifier(process.env.OPENAI_API_KEY!);
 
     // Initialize the orchestrator
-    this.orchestrator = new MultiAgentOrchestrator({
-      classifier,
-      defaultAgent: fixerAgent // Changed to fixer as default for error cases
+    this.teachingOrchestrator = new MultiAgentOrchestrator({
+      classifier: teachingClassifier,
+      defaultAgent: teachingAgent // Changed to fixer as default for error cases
     });
     
     // Add agents to the orchestrator
-    this.orchestrator.addAgent(vocabularyAgent);
-    this.orchestrator.addAgent(conversationAgent);
-    this.orchestrator.addAgent(fixerAgent);
-    this.orchestrator.addAgent(teachingAgent);
-    this.orchestrator.addAgent(qnaAgent);
+    this.teachingOrchestrator.addAgent(vocabularyAgent);
+    this.teachingOrchestrator.addAgent(teachingAgent);
+    this.teachingOrchestrator.addAgent(fixerAgent);
 
-    console.debug('Orchestrator initialized with agents:', [
-      vocabularyAgent.name, 
-      conversationAgent.name, 
-      fixerAgent.name,
-      teachingAgent.name,
-      qnaAgent.name
-    ]);
+    this.conversationOrchestrator = new MultiAgentOrchestrator({
+      classifier: conversationClassifier,
+      defaultAgent: conversationAgent // Changed to fixer as default for error cases
+    });
+    
+    // Add agents to the orchestrator
+    this.conversationOrchestrator.addAgent(conversationAgent);
+    this.conversationOrchestrator.addAgent(fixerAgent);
+
+    this.qnaOrchestrator = new MultiAgentOrchestrator({
+      classifier: qnaClassifier,
+      defaultAgent: qnaAgent // Changed to fixer as default for error cases
+    });
+    
+    // Add agents to the orchestrator
+    this.qnaOrchestrator.addAgent(qnaAgent);
+    this.qnaOrchestrator.addAgent(fixerAgent);
   }
 
   /**
@@ -76,7 +90,9 @@ export class EnglishTeacherOrchestrator {
       const contextData = { conversationType };
       
       const routingStartTime = Date.now();
-      const response = await this.orchestrator.routeRequest(
+      const orchestrator = conversationType === 'Teaching' ? this.teachingOrchestrator : conversationType === 'QnA' ? this.qnaOrchestrator : this.conversationOrchestrator;
+      
+      const response = await orchestrator.routeRequest(
         text,
         userId,
         conversationId,

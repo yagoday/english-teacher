@@ -34,10 +34,10 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const { conversation, opening } = await conversationApi.start(userId, type);
       setActiveConversation(conversation);
       setMessages([{
-        id: `msg-${Date.now()}-tutor`,
+        id: `msg-${Date.now()}-ai`,
         userId,
         text: opening.text,
-        sender: 'tutor',
+        sender: 'ai',
         audioUrl: opening.audioUrl,
         timestamp: new Date()
       }]);
@@ -110,18 +110,18 @@ export const ConversationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const response = await speechApi.processText(text, userId, activeConversation._id);
       
       if (response.success && response.response) {
-        const tutorMessage: Message = {
-          id: `msg-${Date.now()}-tutor`,
+        const aiMessage: Message = {
+          id: `msg-${Date.now()}-ai`,
           userId,
           text: response.response.text,
-          sender: 'tutor',
+          sender: 'ai',
           audioUrl: response.response.audioUrl,
           timestamp: new Date()
         };
         
-        setMessages(prev => [...prev, tutorMessage]);
+        setMessages(prev => [...prev, aiMessage]);
       } else {
-        throw new Error(response.error || "Failed to get tutor's response");
+        throw new Error(response.error || "Failed to get AI's response");
       }
     } catch (error) {
       throw new Error('Failed to process your message');

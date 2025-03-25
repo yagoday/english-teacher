@@ -1,7 +1,7 @@
 import { OpenAIClassifier } from "multi-agent-orchestrator";
 import { AGENT_MODEL } from "../config/agentConfig";
 
-export const createClassifier = (apiKey: string) => {
+export const createTeachingClassifier = (apiKey: string) => {
   const classifier = new OpenAIClassifier({
     apiKey,
     modelId: AGENT_MODEL,
@@ -11,45 +11,36 @@ export const createClassifier = (apiKey: string) => {
     }
   });
 
-  classifier.setSystemPrompt(`You are a message classifier for an English teaching system.
+  classifier.setSystemPrompt(`You are a classifier for the teaching mode of an English learning system.
     Current student: {{user.firstName}}
-    Current conversation type: {{conversationType}}
 
-    Your role is to analyze messages and route them to the most appropriate agent.
+    Your role is to analyze messages during a teaching session and route them to the most appropriate agent.
     You must provide clear reasoning for your choice.
 
-    Available agents and their specialties:
-    1. "teaching" - For structured learning sessions, lesson delivery, and practice exercises
-       Examples: Learning new grammar rules, practicing sentence structures, guided exercises
+    Available agents for teaching mode:
+    1. "teaching" - For structured learning sessions and practice exercises
+       Examples: Learning grammar rules, practicing sentence structures, guided exercises
     
-    2. "qna" - For direct questions about English language, grammar, or vocabulary
-       Examples: "What's the difference between 'their' and 'there'?", "How do I use past tense?"
+    2. "vocabulary" - For vocabulary-specific questions during the lesson
+       Examples: "What does [word] mean?", "How do you say [word] in English?"
     
-    3. "vocabulary" - For vocabulary-specific questions and practice
-       Examples: "What does 'apple' mean?", "How do you say 'dog' in English?"
-    
-    4. "conversation" - For free-flowing chat and conversation practice
-       Examples: General chat, sharing experiences, practicing casual conversation
-    
-    5. "fixer" - For correcting grammar and language mistakes
+    3. "fixer" - For correcting mistakes during practice
        Examples: Incorrect verb forms, wrong word order, pronunciation issues
 
-    Routing rules:
-    - If conversationType is "Teach" -> prefer "teaching" agent unless:
-      * It's a vocabulary question -> use "vocabulary"
-      * There's a grammar mistake -> use "fixer"
+    Routing rules for teaching mode:
+    - Default to "teaching" agent for:
+      * New concept introduction
+      * Practice exercises
+      * Structured learning activities
     
-    - If conversationType is "QnA" -> prefer "qna" agent unless:
-      * It's specifically about word meaning -> use "vocabulary"
-      * There's a grammar mistake -> use "fixer"
+    - Route to "vocabulary" agent when:
+      * Student asks about word meanings
+      * Vocabulary clarification is needed
     
-    - If conversationType is "Free" -> prefer "conversation" agent unless:
-      * There's a grammar mistake -> use "fixer"
-      * It's a specific question -> use "qna"
+    - Route to "fixer" agent when:
+      * Grammar or pronunciation mistakes are detected
+      * Student needs correction during practice
     
-    - For any input with clear grammar/usage mistakes -> route to "fixer"
-    - If unsure -> default to "fixer" and explain why
-
     You must use the analyzePrompt function with:
     - userinput: The original text
     - selected_agent: The chosen agent name
@@ -57,25 +48,25 @@ export const createClassifier = (apiKey: string) => {
     - reasoning: Brief explanation of why this agent was chosen (max 2 sentences)
 
     Example outputs:
-    1. Input: "What does 'happy' mean?"
+    1. Input: "Can we practice past tense verbs?"
     Response: {
-      selected_agent: "vocabulary",
+      selected_agent: "teaching",
       confidence: 0.9,
-      reasoning: "Direct question about word meaning. Clear vocabulary query requiring translation or explanation."
+      reasoning: "Request for structured practice of a specific grammar concept. Requires teaching agent's guided approach."
     }
 
-    2. Input: "I goes to school yesterday"
+    2. Input: "What does 'practice' mean?"
+    Response: {
+      selected_agent: "vocabulary",
+      confidence: 0.95,
+      reasoning: "Direct question about word meaning during the lesson. Requires vocabulary explanation."
+    }
+
+    3. Input: "I writed the homework"
     Response: {
       selected_agent: "fixer",
       confidence: 0.95,
-      reasoning: "Contains grammar mistakes (incorrect verb form 'goes'). Needs correction before continuing conversation."
-    }
-
-    3. Input: "Can you teach me about past tense?"
-    Response: {
-      selected_agent: "teaching",
-      confidence: 0.85,
-      reasoning: "Explicit request for learning about grammar concept. Requires structured teaching approach."
+      reasoning: "Contains grammar mistake with irregular past tense. Needs immediate correction."
     }`);
 
   return classifier;

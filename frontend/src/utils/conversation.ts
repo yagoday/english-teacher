@@ -62,7 +62,7 @@ export const processUserMessage = async (
     id: `msg-${Date.now()}-student`,
     userId: backendUser?._id || '',
     text,
-    sender: "ai",
+    sender: "student",
     timestamp: new Date()
   };
   
@@ -72,8 +72,8 @@ export const processUserMessage = async (
     const response = await speechApi.processText(text, backendUser?._id || '', currentConversationId);
     
     if (response.success && response.response) {
-      const tutorMessage: Message = {
-        id: `msg-${Date.now()}-tutor`,
+      const aiMessage: Message = {
+        id: `msg-${Date.now()}-ai`,
         userId: backendUser?._id || '',
         text: response.response.text,
         sender: "ai",
@@ -81,9 +81,9 @@ export const processUserMessage = async (
         timestamp: new Date()
       };
       
-      setMessages(prev => [...prev, tutorMessage]);
+      setMessages(prev => [...prev, aiMessage]);
     } else {
-      throw new Error(response.error || "Failed to get tutor's response");
+      throw new Error(response.error || "Failed to get AI's response");
     }
   } catch (error) {
     throw new Error('Failed to process your message');

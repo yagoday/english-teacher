@@ -21,11 +21,11 @@ interface ChatMessageProps {
 
 const ChatMessage = ({ message }: ChatMessageProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [disliked, setDisliked] = useState(message.feedback?.disliked || false);
-  const [liked, setLiked] = useState(message.feedback?.liked || false);
   const [audioError, setAudioError] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const isAi = message.sender === "ai";
+  const [feedback, setFeedback] = useState(message.feedback);
+
+  const isAi = message.sender === 'ai';
 
   useEffect(() => {
     if (message.audioUrl && isAi) {
@@ -98,9 +98,11 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
 
   const handleDislike = async () => {
     try {
-      const newDisliked = !disliked;
-      setDisliked(newDisliked);
-      if (liked) setLiked(false);
+      const newDisliked = !feedback?.disliked || false;
+      setFeedback({
+        ...feedback,
+        disliked: newDisliked
+      });
       
       await messageApi.updateFeedback(message.id, {
         liked: false,
@@ -109,15 +111,20 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
     } catch (error) {
       console.error('Failed to update feedback:', error);
       // Revert state on error
-      setDisliked(!disliked);
+      setFeedback({
+        ...feedback,
+        disliked: !feedback?.disliked || false
+      });
     }
   };
 
   const handleLike = async () => {
     try {
-      const newLiked = !liked;
-      setLiked(newLiked);
-      if (disliked) setDisliked(false);
+      const newLiked = !feedback?.liked || false;
+      setFeedback({
+        ...feedback,
+        liked: newLiked
+      });
       
       await messageApi.updateFeedback(message.id, {
         liked: newLiked,
@@ -126,7 +133,10 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
     } catch (error) {
       console.error('Failed to update feedback:', error);
       // Revert state on error
-      setLiked(!liked);
+      setFeedback({
+        ...feedback,
+        liked: !feedback?.liked || false
+      });
     }
   };
 
@@ -186,7 +196,7 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
               onClick={handleLike}
               className={cn(
                 "flex items-center justify-center h-8 w-8 rounded-full transition-colors",
-                liked 
+                feedback?.liked 
                   ? "bg-green-500/10 text-green-500 hover:bg-green-500/20" 
                   : "bg-gray-100 text-gray-400 hover:bg-gray-200"
               )}
@@ -199,7 +209,7 @@ const ChatMessage = ({ message }: ChatMessageProps) => {
               onClick={handleDislike}
               className={cn(
                 "flex items-center justify-center h-8 w-8 rounded-full transition-colors",
-                disliked 
+                feedback?.disliked 
                   ? "bg-destructive/10 text-destructive hover:bg-destructive/20" 
                   : "bg-gray-100 text-gray-400 hover:bg-gray-200"
               )}
