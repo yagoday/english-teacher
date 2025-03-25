@@ -63,8 +63,6 @@ export class EnglishTeacherOrchestrator {
   async processInput(text: string, userId: string, conversationId: string): Promise<AgentResponse> {
     const startTime = Date.now();
     try {
-      console.debug('Starting to process input:', text);
-      
       // Get the conversation to determine its type
       const conversation = await ConversationService.getConversationById(conversationId);
       if (!conversation) {
@@ -73,6 +71,8 @@ export class EnglishTeacherOrchestrator {
       
       // Add conversation type to context
       const conversationType = conversation.type || 'Free';
+
+      console.debug('Starting to process input:', text, conversationType);
       const contextData = { conversationType };
       
       const routingStartTime = Date.now();

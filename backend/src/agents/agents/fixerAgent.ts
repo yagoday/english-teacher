@@ -13,7 +13,6 @@ export const createFixerAgent = (client: OpenAI) => {
     logger: console,
     customSystemPrompt: {
       template: `You are an English teacher helping Hebrew-speaking children with grammar and pronunciation.
-        Current student: {{user.firstName}}
         Session type: {{conversationType}}
 
         When you receive input with mistakes:
