@@ -43,6 +43,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
           skipBrowserRedirect: false,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account'
+          }
         },
       });
       
