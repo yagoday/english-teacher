@@ -128,7 +128,7 @@ const Index = () => {
         userName={(backendUser?.name || 'You').split(' ')[0]}
       />
 
-      <div className="p-4 border-t">
+      <div className="p-4 border-t sticky bottom-0 bg-background z-10 shadow-md">
         <RecordButton
           onRecordingComplete={handleRecordingComplete}
           disabled={isProcessing || !currentConversationId}
